@@ -1,0 +1,3972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="theme-color" content="#060810"/>
+<title>CALC·MATRIX</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne+Mono&family=Syne:wght@700;800&family=DM+Mono:wght@400&display=swap');
+
+:root {
+  --bg: #060810;
+  --surface: #0c0f1e;
+  --s2: #111428;
+  --border: #1c2040;
+  --b2: #252a50;
+  --accent: #e8ff6e;
+  --a2: #6effd4;
+  --a3: #ff6eb4;
+  --text: #c8d0f0;
+  --dim: #4a5280;
+  --bright: #eef0ff;
+  --danger: #ff4466;
+  --glow: #e8ff6e33;
+  --purple: #a78bfa;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+
+html { height: 100%; overflow: hidden; }
+
+body {
+  height: 100%;
+  background: var(--bg);
+  font-family: 'DM Mono', monospace;
+  color: var(--text);
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
+/* ── LAYOUT ── */
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bot);
+}
+
+/* Header */
+.hdr {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px 6px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.hdr-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--bright);
+  letter-spacing: -0.5px;
+}
+.hdr-title span { color: var(--accent); }
+
+/* Tab bar — fixed at bottom */
+.tabbar {
+  flex-shrink: 0;
+  display: flex;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding-bottom: var(--safe-bot);
+}
+.tbbtn {
+  flex: 1;
+  padding: 10px 4px 8px;
+  border: none;
+  background: transparent;
+  color: var(--dim);
+  font-family: 'Syne Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  text-transform: uppercase;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  transition: color .15s;
+}
+.tbbtn .ico { font-size: 18px; line-height: 1; }
+.tbbtn.active { color: var(--accent); }
+.tbbtn.active .ico { text-shadow: 0 0 12px var(--glow); }
+
+/* Content area — scrollable */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Pages */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── CALCULATOR PAGE ── */
+.calc-page {
+  display: none;
+  flex-direction: column;
+  height: 100%;
+}
+.calc-page.active { display: flex; }
+
+.display {
+  flex-shrink: 0;
+  background: var(--bg);
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid var(--border);
+  min-height: 90px;
+}
+.d-hist { font-size: 11px; color: var(--dim); text-align: right; min-height: 15px; font-style: italic; }
+.d-val {
+  font-family: 'Syne', sans-serif;
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--accent);
+  text-align: right;
+  line-height: 1.05;
+  text-shadow: 0 0 24px var(--glow);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: font-size .1s;
+}
+.d-val.sm { font-size: 24px; }
+.d-val.err { color: var(--danger); font-size: 16px; text-shadow: none; }
+.d-frac { font-size: 12px; color: var(--a2); text-align: right; font-family: 'Syne Mono', monospace; margin-top: 2px; min-height: 16px; }
+
+.keypad {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.key {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--s2);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: clamp(10px, 3vw, 14px);
+  cursor: pointer;
+  text-align: center;
+  outline: none;
+  -webkit-appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 0;
+  transition: transform .08s, background .08s;
+  position: relative;
+  overflow: hidden;
+}
+.key::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #ffffff0a, transparent 60%);
+  pointer-events: none;
+}
+.key:active { transform: scale(.93); background: var(--border); }
+
+.key.fn  { color: var(--a2);     border-color: #1a3530; background: #0a1818; font-size: clamp(9px,2.5vw,11px); }
+.key.op  { color: var(--a3);     border-color: #2a1830; background: #150d18; font-size: clamp(14px,4vw,18px); }
+.key.act { color: #ff9944;       border-color: #2a1a0a; background: #130e06; font-size: clamp(9px,2.5vw,11px); }
+.key.eq  {
+  background: var(--accent); color: #0a0c18;
+  border: none; font-family: 'Syne', sans-serif;
+  font-weight: 800; font-size: clamp(18px,5vw,24px);
+  box-shadow: 0 0 16px var(--glow);
+}
+.key.eq:active { background: #f0ff80; }
+.key.pur { color: var(--purple); border-color: #2a1a40; background: #110a20; font-size: clamp(9px,2.5vw,11px); }
+.key.s2  { grid-column: span 2; }
+
+/* ── SECTIONS (non-calc pages) ── */
+.section { padding: 14px; }
+.sec-title {
+  font-family: 'Syne', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--dim);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+.lbl { font-size: 10px; color: var(--dim); min-width: 48px; }
+
+.inp {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 11px 12px;
+  color: var(--bright);
+  font-family: 'DM Mono', monospace;
+  font-size: 14px;
+  outline: none;
+  -webkit-appearance: none;
+  transition: border-color .2s;
+  width: 100%;
+}
+.inp:focus { border-color: var(--accent); }
+.inp::placeholder { color: var(--dim); }
+.inp.ctr { text-align: center; }
+
+.frac-preview {
+  text-align: center;
+  font-family: 'Syne Mono', monospace;
+  margin: 8px 0 12px;
+  padding: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+.fp-n { font-size: 20px; color: var(--accent); border-bottom: 2px solid var(--a2); padding: 0 16px 4px; }
+.fp-d { font-size: 20px; color: var(--a2); padding: 4px 16px 0; }
+
+.abtn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: #0a0c18;
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  cursor: pointer;
+  text-transform: uppercase;
+  box-shadow: 0 0 16px var(--glow);
+  margin-top: 6px;
+  -webkit-appearance: none;
+  transition: transform .1s;
+}
+.abtn:active { transform: scale(.98); }
+.abtn.sec {
+  background: transparent;
+  border: 1px solid var(--b2);
+  color: var(--dim);
+  box-shadow: none;
+}
+
+.rbox {
+  margin-top: 12px;
+  padding: 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.rbox.ok { border-color: #1a3020; }
+.rbox.err { border-color: #3a1020; background: #0e0508; }
+.rlbl { font-size: 9px; letter-spacing: 3px; color: var(--dim); margin-bottom: 10px; text-transform: uppercase; }
+.rrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--s2);
+  margin-bottom: 6px;
+  border-left: 3px solid var(--accent);
+}
+.rv  { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800; color: var(--dim); min-width: 20px; }
+.req { color: var(--dim); }
+.rn  { font-family: 'Syne Mono', monospace; font-size: 16px; color: var(--accent); font-weight: bold; flex: 1; }
+.rf  { font-size: 11px; color: var(--a2); }
+.rtxt { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--accent); white-space: pre-wrap; word-break: break-all; line-height: 1.7; }
+.rtxt.err { color: var(--danger); }
+
+/* sub-tabs */
+.stabs { display: flex; gap: 4px; margin-bottom: 12px; }
+.stab {
+  flex: 1;
+  padding: 9px 4px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--dim);
+  font-family: 'Syne Mono', monospace;
+  font-size: 10px;
+  cursor: pointer;
+  text-align: center;
+  -webkit-appearance: none;
+}
+.stab.active { border-color: var(--accent); color: var(--accent); background: #e8ff6e10; }
+
+/* var chips */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.chip {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--b2);
+  background: var(--s2);
+  color: var(--a2);
+  font-family: 'Syne Mono', monospace;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+.chip-bar { position: absolute; bottom: 0; left: 0; height: 3px; background: var(--danger); border-radius: 2px; }
+.addchip {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1px dashed var(--b2);
+  background: transparent;
+  color: var(--dim);
+  font-family: 'Syne Mono', monospace;
+  font-size: 13px;
+  cursor: pointer;
+  -webkit-appearance: none;
+}
+.avar-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 10px;
+  animation: fadeIn .2s ease;
+}
+.cfmbtn {
+  padding: 9px 14px;
+  border-radius: 7px;
+  border: none;
+  background: var(--accent);
+  color: #0a0c18;
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-appearance: none;
+}
+
+/* identity rows */
+.idrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 12px;
+  border-radius: 8px;
+  background: var(--s2);
+  margin-bottom: 6px;
+  border-left: 3px solid var(--purple);
+  cursor: pointer;
+  active: background var(--border);
+}
+.idrow:active { background: var(--border); }
+
+/* hint */
+.hint { font-size: 10px; color: var(--dim); line-height: 1.6; margin-bottom: 10px; }
+
+/* history */
+.hitem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 11px 12px;
+  border-radius: 8px;
+  background: var(--s2);
+  margin-bottom: 6px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+.hitem:active { background: var(--border); }
+.hexpr { font-size: 12px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 55%; }
+.hval  { font-family: 'Syne Mono', monospace; font-size: 14px; color: var(--accent); }
+
+.divider { height: 20px; }
+.hidden { display: none !important; }
+
+@keyframes fadeIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-title">CALC<span>·</span>MATRIX</div>
+  </div>
+
+  <!-- CALC PAGE (flex column, fixed height) -->
+  <div class="calc-page active" id="page-calc">
+    <div class="display">
+      <div class="d-hist" id="d-hist"></div>
+      <div class="d-val" id="d-val">0</div>
+      <div class="d-frac" id="d-frac"></div>
+    </div>
+    <div class="keypad">
+      <button class="key fn" onclick="press('sin(')">sin(</button>
+      <button class="key fn" onclick="press('cos(')">cos(</button>
+      <button class="key fn" onclick="press('tan(')">tan(</button>
+      <button class="key fn" onclick="press('log(')">log(</button>
+      <button class="key fn" onclick="press('ln(')">ln(</button>
+
+      <button class="key fn" onclick="press('asin(')">asin</button>
+      <button class="key fn" onclick="press('acos(')">acos</button>
+      <button class="key fn" onclick="press('atan(')">atan</button>
+      <button class="key fn" onclick="press('sqrt(')">√(</button>
+      <button class="key fn" onclick="press('^2')">x²</button>
+
+      <button class="key fn" id="paren-btn" onclick="pressParen()">( )</button>
+      <button class="key fn" onclick="press('Math.PI')">π</button>
+      <button class="key fn" onclick="press('Math.E')">e</button>
+      <button class="key pur" onclick="press('^')">xⁿ</button>
+      <button class="key op"  onclick="press('%')">%</button>
+
+      <button class="key" onclick="press('7')">7</button>
+      <button class="key" onclick="press('8')">8</button>
+      <button class="key" onclick="press('9')">9</button>
+      <button class="key op" onclick="press('/')">÷</button>
+      <button class="key act" onclick="clearCalc()">CLR</button>
+
+      <button class="key" onclick="press('4')">4</button>
+      <button class="key" onclick="press('5')">5</button>
+      <button class="key" onclick="press('6')">6</button>
+      <button class="key op" onclick="press('*')">×</button>
+      <button class="key act" onclick="delChar()">DEL</button>
+
+      <button class="key" onclick="press('1')">1</button>
+      <button class="key" onclick="press('2')">2</button>
+      <button class="key" onclick="press('3')">3</button>
+      <button class="key op" onclick="press('-')">−</button>
+      <button class="key eq" onclick="compute()">=</button>
+
+      <button class="key s2" onclick="press('0')">0</button>
+      <button class="key" onclick="press('.')">.</button>
+      <button class="key op" onclick="press('+')">+</button>
+      <button class="key fn" onclick="press('(')">(</button>
+    </div>
+  </div>
+
+  <!-- FRACTIONS PAGE -->
+  <div class="page" id="page-frac">
+    <div class="section">
+      <div class="sec-title">⬡ Simplify Fraction</div>
+      <div class="frac-preview">
+        <div class="fp-n" id="fp-n">a</div>
+        <div class="fp-d" id="fp-d">b</div>
+      </div>
+      <div class="row">
+        <span class="lbl">Numer.</span>
+        <input class="inp ctr" id="fn-inp" placeholder="e.g. 12" oninput="updFP()" onkeydown="if(event.key==='Enter')doSimp()"/>
+      </div>
+      <div class="row">
+        <span class="lbl">Denom.</span>
+        <input class="inp ctr" id="fd-inp" placeholder="e.g. 8" oninput="updFP()" onkeydown="if(event.key==='Enter')doSimp()"/>
+      </div>
+      <button class="abtn" onclick="doSimp()">SIMPLIFY</button>
+      <div id="simp-res"></div>
+
+      <div class="divider"></div>
+      <div class="sec-title">⬡ Fraction Algebra + Unknowns</div>
+      <div class="hint">Use +, −, *, /. Variables supported inside fractions.</div>
+      <div class="row">
+        <input class="inp" id="fa-inp" placeholder="x/2 + (3*x+1)/4" onkeydown="if(event.key==='Enter')doFracAlg()"/>
+      </div>
+      <button class="abtn" onclick="doFracAlg()">COMPUTE</button>
+      <div id="fa-res"></div>
+    </div>
+  </div>
+
+  <!-- ALGEBRA PAGE -->
+  <div class="page" id="page-alg">
+    <div class="section">
+      <div class="sec-title">⬡ Expand & Factor</div>
+      <div class="stabs">
+        <button class="stab active" id="alg-exp-btn" onclick="setAlgMode('expand')">EXPAND</button>
+        <button class="stab" id="alg-fac-btn" onclick="setAlgMode('factor')">FACTOR</button>
+      </div>
+      <div class="hint" id="alg-hint">Enter expression to expand. e.g. (x+2)^3</div>
+      <div class="row">
+        <input class="inp" id="alg-inp" placeholder="(x+3)^2" onkeydown="if(event.key==='Enter')doAlg()"/>
+      </div>
+      <button class="abtn" id="alg-btn" onclick="doAlg()">EXPAND</button>
+      <div id="alg-res"></div>
+
+      <div class="divider"></div>
+      <div class="sec-title">⬡ Common Identities</div>
+      <div class="idrow" onclick="fillId('(a+b)^2')">
+        <span style="color:var(--purple);font-family:'Syne Mono',monospace">(a+b)²</span>
+        <span style="color:var(--dim)">=</span>
+        <span style="font-size:12px;color:var(--text)">a² + 2ab + b²</span>
+      </div>
+      <div class="idrow" onclick="fillId('(a-b)^2')">
+        <span style="color:var(--purple);font-family:'Syne Mono',monospace">(a−b)²</span>
+        <span style="color:var(--dim)">=</span>
+        <span style="font-size:12px;color:var(--text)">a² − 2ab + b²</span>
+      </div>
+      <div class="idrow" onclick="fillId('(a+b)*(a-b)')">
+        <span style="color:var(--purple);font-family:'Syne Mono',monospace">(a+b)(a−b)</span>
+        <span style="color:var(--dim)">=</span>
+        <span style="font-size:12px;color:var(--text)">a² − b²</span>
+      </div>
+      <div class="idrow" onclick="fillId('(a+b)^3')">
+        <span style="color:var(--purple);font-family:'Syne Mono',monospace">(a+b)³</span>
+        <span style="color:var(--dim)">=</span>
+        <span style="font-size:12px;color:var(--text)">a³ + 3a²b + 3ab² + b³</span>
+      </div>
+      <div class="idrow" onclick="fillId('(a-b)^3')">
+        <span style="color:var(--purple);font-family:'Syne Mono',monospace">(a−b)³</span>
+        <span style="color:var(--dim)">=</span>
+        <span style="font-size:12px;color:var(--text)">a³ − 3a²b + 3ab² − b³</span>
+      </div>
+      <div class="hint" style="margin-top:8px">Tap identity to auto-fill & expand</div>
+    </div>
+  </div>
+
+  <!-- SOLVER PAGE -->
+  <div class="page" id="page-solv">
+    <div class="section">
+      <div class="sec-title">⬡ Variables</div>
+      <div class="chips" id="var-chips"></div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <button class="addchip" onclick="toggleAddVar()">+ var</button>
+      </div>
+      <div class="avar-row hidden" id="avar-row">
+        <span class="lbl">New:</span>
+        <input class="inp ctr" id="nvar-inp" placeholder="e.g. z" style="font-size:16px" onkeydown="if(event.key==='Enter')addVar();if(event.key==='Escape')toggleAddVar()"/>
+        <button class="cfmbtn" onclick="addVar()">Add ✓</button>
+      </div>
+      <div class="hint">Hold a variable ~1s to remove it</div>
+
+      <div class="sec-title">⬡ Equations</div>
+      <div class="hint">Use = to separate sides. Fractions OK: x/2 + y/3 = 5</div>
+      <div id="eqs-wrap"></div>
+      <button class="abtn sec" style="margin-bottom:10px" onclick="addEq()">+ Add Equation</button>
+      <button class="abtn" onclick="doSolve()">⬡ SOLVE SYSTEM</button>
+      <div id="solv-res"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY PAGE -->
+  <div class="page" id="page-hist">
+    <div class="section">
+      <div class="sec-title">⬡ Calculation Log</div>
+      <div id="hist-list">
+        <div style="text-align:center;color:var(--dim);padding:40px 0;font-size:12px;letter-spacing:2px">NO CALCULATIONS YET</div>
+      </div>
+      <button class="abtn sec hidden" id="clr-hist" style="margin-top:10px" onclick="clrHist()">Clear History</button>
+    </div>
+  </div>
+
+  <!-- TAB BAR -->
+  <div class="tabbar">
+    <button class="tbbtn active" id="tb-calc" onclick="goTab('calc')"><div class="ico">🔢</div>CALC</button>
+    <button class="tbbtn" id="tb-frac" onclick="goTab('frac')"><div class="ico">➗</div>FRAC</button>
+    <button class="tbbtn" id="tb-alg"  onclick="goTab('alg')"><div class="ico">📐</div>ALGEBRA</button>
+    <button class="tbbtn" id="tb-solv" onclick="goTab('solv')"><div class="ico">⬡</div>SOLVER</button>
+    <button class="tbbtn" id="tb-hist" onclick="goTab('hist')"><div class="ico">📋</div>LOG</button>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  MATH ENGINE
+// ═══════════════════════════════════════════════════════
+function gcd(a,b){a=Math.abs(Math.round(a));b=Math.abs(Math.round(b));while(b){[a,b]=[b,a%b];}return a||1;}
+function frac(n,d=1){if(d===0)return{n:NaN,d:1};if(d<0){n=-n;d=-d;}const g=gcd(Math.abs(n),d);return{n:n/g,d:d/g};}
+function fracStr(f){if(isNaN(f.n))return"undefined";if(f.d===1)return String(f.n);return`${f.n}/${f.d}`;}
+function toFrac(x,mx=1000){
+  if(Number.isInteger(x))return frac(x);
+  const s=x<0?-1:1;x=Math.abs(x);
+  let bN=1,bD=1,bE=Infinity;
+  for(let d=1;d<=mx;d++){const n=Math.round(x*d);const e=Math.abs(x-n/d);if(e<bE){bE=e;bN=n;bD=d;}if(e<1e-9)break;}
+  return frac(s*bN,bD);
+}
+function normMono(vars){return vars.filter(([,e])=>e!==0).sort((a,b)=>a[0].localeCompare(b[0])).map(([v,e])=>e===1?v:`${v}^${e}`).join("*")||"";}
+function polyZero(){return new Map();}
+function polyConst(c){const p=new Map();if(c!==0)p.set("",c);return p;}
+function polyVar(v){const p=new Map();p.set(v,1);return p;}
+function polyAdd(a,b){const r=new Map(a);for(const[k,v]of b)r.set(k,(r.get(k)||0)+v);for(const[k,v]of r)if(Math.abs(v)<1e-12)r.delete(k);return r;}
+function polySub(a,b){const neg=new Map();for(const[k,v]of b)neg.set(k,-v);return polyAdd(a,neg);}
+function monoMul(ma,mb){
+  const pm=m=>{if(!m)return{};const vv={};m.split("*").forEach(t=>{const[v,e]=t.includes("^")?t.split("^"):[t,"1"];vv[v]=(vv[v]||0)+parseInt(e);});return vv;};
+  const va=pm(ma),vb=pm(mb),mg={...va};
+  for(const[v,e]of Object.entries(vb))mg[v]=(mg[v]||0)+e;
+  return normMono(Object.entries(mg));
+}
+function polyMul(a,b){const r=new Map();for(const[ka,va]of a)for(const[kb,vb]of b){const k=monoMul(ka,kb);r.set(k,(r.get(k)||0)+va*vb);}for(const[k,v]of r)if(Math.abs(v)<1e-12)r.delete(k);return r;}
+function polyPow(p,n){let r=polyConst(1);for(let i=0;i<n;i++)r=polyMul(r,p);return r;}
+function polyStr(p){
+  if(p.size===0)return"0";
+  const terms=[...p.entries()].sort((a,b)=>{
+    const da=a[0]?a[0].split("*").reduce((s,t)=>s+parseInt(t.includes("^")?t.split("^")[1]:1),0):-1;
+    const db=b[0]?b[0].split("*").reduce((s,t)=>s+parseInt(t.includes("^")?t.split("^")[1]:1),0):-1;
+    return db-da;
+  });
+  return terms.map(([k,v],i)=>{
+    const sg=v<0?(i===0?"-":" - "):(i===0?"":" + ");
+    const ac=Math.abs(v);
+    const cs=ac===1&&k?"":(Number.isInteger(ac)?String(ac):ac.toFixed(4).replace(/\.?0+$/,""));
+    return sg+cs+(k?k:"");
+  }).join("")||"0";
+}
+function parsePoly(expr){
+  expr=expr.trim().replace(/\s+/g,"");let pos=0;
+  function pE(){return pAS();}
+  function pAS(){let l=pMD();while(pos<expr.length&&(expr[pos]==="+"||expr[pos]==="-")){const op=expr[pos++];const r=pMD();l=op==="+"?polyAdd(l,r):polySub(l,r);}return l;}
+  function pMD(){let l=pPow();while(pos<expr.length&&(expr[pos]==="*"||expr[pos]==="/")){const op=expr[pos++];const r=pPow();if(op==="*")l=polyMul(l,r);else{if(r.size===1&&r.has("")){const d=r.get("");const rm=new Map();for(const[k,v]of l)rm.set(k,v/d);l=rm;}else l=polyConst(NaN);}}return l;}
+  function pPow(){let b=pU();if(pos<expr.length&&expr[pos]==="^"){pos++;const ep=pU();if(ep.size===1&&ep.has("")){const e=ep.get("");if(Number.isInteger(e)&&e>=0)b=polyPow(b,e);else b=polyConst(NaN);}else b=polyConst(NaN);}return b;}
+  function pU(){if(pos<expr.length&&expr[pos]==="-"){pos++;return polySub(polyZero(),pPrim());}if(pos<expr.length&&expr[pos]==="+"){pos++;return pPrim();}return pPrim();}
+  function pPrim(){
+    if(pos<expr.length&&expr[pos]==="("){pos++;const inner=pE();if(pos<expr.length&&expr[pos]===")")pos++;return inner;}
+    if(/[0-9.]/.test(expr[pos]||"")){let s="";while(pos<expr.length&&/[0-9.]/.test(expr[pos]))s+=expr[pos++];return polyConst(parseFloat(s));}
+    if(/[a-zA-Z]/.test(expr[pos]||"")){let s="";while(pos<expr.length&&/[a-zA-Z]/.test(expr[pos]))s+=expr[pos++];if(s==="pi")return polyConst(Math.PI);if(s==="e")return polyConst(Math.E);return polyVar(s);}
+    return polyConst(0);
+  }
+  try{return pE();}catch{return polyConst(NaN);}
+}
+function ratSimp(num,den){
+  const ac=[...num.values(),...den.values()].map(Math.abs);
+  if(!ac.length)return{num,den};
+  const g=ac.reduce(gcd);
+  if(g>1){const n2=new Map();for(const[k,v]of num)n2.set(k,v/g);const d2=new Map();for(const[k,v]of den)d2.set(k,v/g);return{num:n2,den:d2};}
+  return{num,den};
+}
+function factorP(ps){
+  const p=parsePoly(ps);
+  const vars=new Set();for(const k of p.keys())if(k)k.split("*").forEach(t=>vars.add(t.replace(/\^.*/,"")));
+  if(vars.size===0)return`${polyStr(p)} (constant)`;
+  if(vars.size>1){
+    const co=[...p.values()];const g=co.reduce((a,b)=>gcd(Math.abs(Math.round(a)),Math.abs(Math.round(b))));
+    if(g>1){const p2=new Map();for(const[k,v]of p)p2.set(k,v/g);return`${g}(${polyStr(p2)})`;}
+    return polyStr(p)+" (cannot factor further)";
+  }
+  const v=[...vars][0],a=p.get(`${v}^2`)||0,b=p.get(v)||0,c=p.get("")||0;
+  if(a===0&&b!==0){if(c===0)return`${b!==1?b:""}${v}`;return`${b!==1?b:""}(${v} + ${fracStr(toFrac(c/b))})`;}
+  if(a!==0){
+    const disc=b*b-4*a*c,ls=a!==1?String(a):"";
+    if(disc<0)return`${polyStr(p)} (irreducible over ℝ)`;
+    if(disc===0){const r=toFrac(-b/(2*a));return`${ls}(${v} ${r.n>=0?"+":"-"} ${fracStr(frac(Math.abs(r.n),r.d))})²`;}
+    const sq=Math.sqrt(disc);
+    if(Math.abs(sq-Math.round(sq))<1e-9){
+      const fr1=frac(-b+Math.round(sq),2*a),fr2=frac(-b-Math.round(sq),2*a);
+      if(fr1.d===1&&fr2.d===1){
+        const s1=fr1.n>=0?`(${v} - ${fr1.n})`:`(${v} + ${-fr1.n})`;
+        const s2=fr2.n>=0?`(${v} - ${fr2.n})`:`(${v} + ${-fr2.n})`;
+        return`${ls}${s1}${s2}`;
+      }
+      const g1=gcd(Math.abs(Math.round(-b+sq)),Math.abs(2*a))||1,g2=gcd(Math.abs(Math.round(-b-sq)),Math.abs(2*a))||1;
+      const p1=2*a/g1,q1=-(-b+sq)/g1,p2=2*a/g2,q2=-(-b-sq)/g2;
+      const fm=n=>Number.isInteger(n)?String(Math.round(n)):n.toFixed(3).replace(/\.?0+$/,"");
+      return`(${fm(p1)}${v} ${q1>=0?"+":"-"} ${fm(Math.abs(q1))})(${fm(p2)}${v} ${q2>=0?"+":"-"} ${fm(Math.abs(q2))})`;
+    }
+    const r1=(-b+sq)/(2*a),r2=(-b-sq)/(2*a),fm=n=>n.toFixed(4).replace(/\.?0+$/,"");
+    return`${ls}(${v} - ${fm(r1)})(${v} - ${fm(r2)})`;
+  }
+  return polyStr(p);
+}
+function expandE(expr){try{const p=parsePoly(expr);if([...p.values()].some(isNaN))return"Cannot expand";return polyStr(p);}catch{return"Cannot expand";}}
+function fracAlg(input){
+  input=input.trim();
+  if(input.includes("=")){const[l,r]=input.split("=").map(s=>s.trim());return`Left:  ${expandE(l)}\nRight: ${expandE(r)}`;}
+  const pF=s=>{
+    const pts=[];let cur="",sg=1,dp=0;
+    for(let i=0;i<s.length;i++){const c=s[i];if(c==="(")dp++;else if(c===")")dp--;else if(dp===0&&(c==="+"||c==="-")&&i>0){pts.push({raw:cur.trim(),sg});sg=c==="+"?1:-1;cur="";continue;}cur+=c;}
+    if(cur.trim())pts.push({raw:cur.trim(),sg});
+    return pts.map(p=>{const si=p.raw.indexOf("/");if(si===-1)return{num:p.raw,den:"1",sg:p.sg};return{num:p.raw.slice(0,si).trim(),den:p.raw.slice(si+1).trim(),sg:p.sg};});
+  };
+  const parts=pF(input);if(!parts.length)return"";
+  let rN=parsePoly(parts[0].num),rD=parsePoly(parts[0].den);
+  for(let i=1;i<parts.length;i++){
+    const{num,den,sg}=parts[i];const np=parsePoly(num),dp=parsePoly(den);
+    rN=sg===1?polyAdd(polyMul(rN,dp),polyMul(np,rD)):polySub(polyMul(rN,dp),polyMul(np,rD));
+    rD=polyMul(rD,dp);
+  }
+  const{num:sn,den:sd}=ratSimp(rN,rD);
+  const ns=polyStr(sn),ds=polyStr(sd);
+  return ds==="1"?ns:`(${ns}) / (${ds})`;
+}
+function gaussSolve(M,C){
+  const n=M.length,aug=M.map((r,i)=>[...r,C[i]]);
+  for(let c=0;c<n;c++){
+    let mr=c;for(let r=c+1;r<n;r++)if(Math.abs(aug[r][c])>Math.abs(aug[mr][c]))mr=r;
+    [aug[c],aug[mr]]=[aug[mr],aug[c]];
+    if(Math.abs(aug[c][c])<1e-10)return null;
+    const pv=aug[c][c];for(let j=c;j<=n;j++)aug[c][j]/=pv;
+    for(let r=0;r<n;r++){if(r===c)continue;const f=aug[r][c];for(let j=c;j<=n;j++)aug[r][j]-=f*aug[c][j];}
+  }
+  return aug.map(r=>r[n]);
+}
+function evalS(expr,vars={}){
+  try{
+    let e=expr;
+    for(const[k,v]of Object.entries(vars))e=e.replace(new RegExp(`(?<![a-zA-Z])${k}(?![a-zA-Z])`,"g"),`(${v})`);
+    e=e.replace(/\^/g,"**").replace(/sin\(/g,"Math.sin(").replace(/cos\(/g,"Math.cos(").replace(/tan\(/g,"Math.tan(")
+       .replace(/asin\(/g,"Math.asin(").replace(/acos\(/g,"Math.acos(").replace(/atan\(/g,"Math.atan(")
+       .replace(/sqrt\(/g,"Math.sqrt(").replace(/log\(/g,"Math.log10(").replace(/ln\(/g,"Math.log(").replace(/abs\(/g,"Math.abs(");
+    return Function('"use strict";return('+e+")")();
+  }catch{return NaN;}
+}
+function solveSys(eqs,vs){
+  const n=vs.length,M=[],C=[];
+  for(const eq of eqs){
+    const pts=eq.split("=");if(pts.length!==2)continue;
+    const cb=`(${pts[0].trim()})-(${pts[1].trim()})`;
+    const row=[];let lin=true;
+    for(const v of vs){
+      const wv=Object.fromEntries(vs.map(vv=>[vv,vv===v?1:0]));
+      const wo=Object.fromEntries(vs.map(vv=>[vv,0]));
+      const a=evalS(cb,wv),b=evalS(cb,wo);
+      if(isNaN(a)||isNaN(b)){lin=false;break;}row.push(a-b);
+    }
+    if(!lin)break;
+    C.push(-evalS(cb,Object.fromEntries(vs.map(v=>[v,0]))));M.push(row);
+  }
+  if(M.length===n){const sol=gaussSolve(M,C);if(sol)return vs.map((v,i)=>({v,val:sol[i],f:toFrac(sol[i])}));}
+  if(n===2){
+    const[v1,v2]=vs;
+    const f0=eqs[0].includes("=")?`(${eqs[0].split("=")[0]})-(${eqs[0].split("=")[1]})`:eqs[0];
+    const f1=eqs[1].includes("=")?`(${eqs[1].split("=")[0]})-(${eqs[1].split("=")[1]})`:eqs[1];
+    let x=[0.5,0.5];
+    const F=v=>[evalS(f0,{[v1]:v[0],[v2]:v[1]}),evalS(f1,{[v1]:v[0],[v2]:v[1]})];
+    const h=1e-5;
+    for(let i=0;i<500;i++){
+      const fv=F(x);if(Math.abs(fv[0])<1e-9&&Math.abs(fv[1])<1e-9)break;
+      const J=[[(evalS(f0,{[v1]:x[0]+h,[v2]:x[1]})-fv[0])/h,(evalS(f0,{[v1]:x[0],[v2]:x[1]+h})-fv[0])/h],
+               [(evalS(f1,{[v1]:x[0]+h,[v2]:x[1]})-fv[1])/h,(evalS(f1,{[v1]:x[0],[v2]:x[1]+h})-fv[1])/h]];
+      const det=J[0][0]*J[1][1]-J[0][1]*J[1][0];if(Math.abs(det)<1e-15)break;
+      x=[x[0]-(J[1][1]*fv[0]-J[0][1]*fv[1])/det,x[1]-(-J[1][0]*fv[0]+J[0][0]*fv[1])/det];
+    }
+    const fv=F(x);if(Math.abs(fv[0])<1e-6&&Math.abs(fv[1])<1e-6)return vs.map((v,i)=>({v,val:x[i],f:toFrac(x[i])}));
+  }
+  if(n===1){
+    const v=vs[0];
+    const es=eqs[0].includes("=")?`(${eqs[0].split("=")[0]})-(${eqs[0].split("=")[1]})`:eqs[0];
+    const F=val=>evalS(es,{[v]:val});
+    const roots=[];
+    for(let s=-200;s<200;s+=0.5){const fa=F(s),fb=F(s+0.5);if(isNaN(fa)||isNaN(fb)||fa*fb>0)continue;let a=s,b=s+0.5;for(let i=0;i<100;i++){const m=(a+b)/2,fm=F(m);if(Math.abs(fm)<1e-10||(b-a)<1e-12){roots.push(parseFloat(m.toFixed(8)));break;}F(a)*fm<0?(b=m):(a=m);}}
+    const u=[...new Set(roots.map(r=>r.toFixed(6)))].map(Number);
+    if(u.length>0)return u.map(r=>({v,val:r,f:toFrac(r)}));
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════
+//  UI STATE
+// ═══════════════════════════════════════════════════════
+let display="0", dHist="", dFrac="", isRes=false, history=[];
+let vars=["x","y"], eqs=["",""];
+let holdVar=null, holdProg=0, holdIv=null, algMode="expand";
+
+// ── TABS ──
+function goTab(name){
+  ["calc","frac","alg","solv","hist"].forEach(t=>{
+    const pg=document.getElementById("page-"+t);
+    if(t==="calc"){pg.classList.toggle("active",t===name);}
+    else{pg.classList.toggle("active",t===name);}
+  });
+  document.querySelectorAll(".tbbtn").forEach(b=>b.classList.remove("active"));
+  document.getElementById("tb-"+name).classList.add("active");
+  if(name==="hist")renderHist();
+}
+
+// Override for calc page special handling
+document.querySelectorAll(".page,.calc-page").forEach(el=>{});
+
+// ── CALCULATOR ──
+function updDisp(){
+  const el=document.getElementById("d-val");
+  el.textContent=display;
+  el.className="d-val"+(display.length>13?" sm":"")+(isRes&&(display.includes("error")||display.includes("zero"))?" err":"");
+  document.getElementById("d-hist").textContent=dHist;
+  document.getElementById("d-frac").textContent=dFrac;
+  const op=(display.match(/\(/g)||[]).length,cl=(display.match(/\)/g)||[]).length;
+  document.getElementById("paren-btn").textContent=op>cl?")":" ( ";
+}
+function press(v){
+  if(isRes){
+    if(/[0-9.(]/.test(v)||v==="Math.PI"||v==="Math.E"){display=v==="Math.PI"?"π":v==="Math.E"?"e":v;}
+    else display+=v;
+    dFrac="";isRes=false;
+  } else {
+    if(display==="0"&&/^[0-9]$/.test(v))display=v;
+    else if(display==="0"&&v===".")display="0.";
+    else display+=v;
+  }
+  updDisp();
+}
+function pressParen(){const op=(display.match(/\(/g)||[]).length,cl=(display.match(/\)/g)||[]).length;press(op>cl?")":"(");}
+function clearCalc(){display="0";dHist="";dFrac="";isRes=false;updDisp();}
+function delChar(){if(isRes){display="0";dFrac="";isRes=false;}else display=display.length<=1?"0":display.slice(0,-1);updDisp();}
+function compute(){
+  let expr=display.replace(/π/g,"Math.PI").replace(/(?<![a-z])e(?![a-z])/g,"Math.E");
+  expr=expr.replace(/log\(/g,"Math.log10(").replace(/ln\(/g,"Math.log(").replace(/sin\(/g,"Math.sin(").replace(/cos\(/g,"Math.cos(").replace(/tan\(/g,"Math.tan(").replace(/asin\(/g,"Math.asin(").replace(/acos\(/g,"Math.acos(").replace(/atan\(/g,"Math.atan(").replace(/sqrt\(/g,"Math.sqrt(").replace(/\^/g,"**");
+  try{
+    const result=Function('"use strict";return('+expr+")")();
+    if(!isFinite(result)){display="Division by zero";dFrac="";isRes=true;updDisp();return;}
+    const fmt=parseFloat(result.toFixed(10)).toString();
+    const f=toFrac(result);
+    dFrac=f.d!==1?`= ${fracStr(f)}`:"";
+    dHist=display+" =";
+    history=[{expr:display,val:fmt},...history.slice(0,19)];
+    display=fmt;isRes=true;
+  }catch{dHist=display;display="Syntax error";dFrac="";isRes=true;}
+  updDisp();
+}
+
+// ── FRACTIONS ──
+function updFP(){
+  document.getElementById("fp-n").textContent=document.getElementById("fn-inp").value||"a";
+  document.getElementById("fp-d").textContent=document.getElementById("fd-inp").value||"b";
+}
+function doSimp(){
+  const n=parseFloat(document.getElementById("fn-inp").value);
+  const d=parseFloat(document.getElementById("fd-inp").value);
+  const el=document.getElementById("simp-res");
+  if(isNaN(n)){el.innerHTML=errBox("Enter a valid numerator");return;}
+  if(isNaN(d)){el.innerHTML=errBox("Enter a valid denominator");return;}
+  if(d===0){el.innerHTML=errBox("Denominator cannot be zero");return;}
+  const s=frac(n,d),dec=n/d,tr=Math.trunc(dec),rem=frac(Math.abs(s.n%s.d),s.d);
+  const mix=s.d!==1?(tr!==0?`${tr} ${fracStr(rem)}`:fracStr(rem)):"";
+  el.innerHTML=`<div class="rbox ok" style="margin-top:12px">
+    <div class="rlbl">Result</div>
+    <div class="rrow"><span class="rv">Simplified</span><span class="req">=</span><span class="rn">${fracStr(s)}</span></div>
+    <div class="rrow" style="border-left-color:var(--a2)"><span class="rv">Decimal</span><span class="req">=</span><span class="rn" style="color:var(--a2)">${dec.toFixed(8).replace(/\.?0+$/,"")}</span></div>
+    ${s.d!==1?`<div class="rrow" style="border-left-color:var(--a3)"><span class="rv">Mixed</span><span class="req">=</span><span class="rn" style="color:var(--a3)">${mix}</span></div>`:""}
+  </div>`;
+}
+function doFracAlg(){
+  const inp=document.getElementById("fa-inp").value.trim();
+  const el=document.getElementById("fa-res");
+  if(!inp){el.innerHTML="";return;}
+  try{
+    const res=fracAlg(inp);
+    const isE=res.toLowerCase().includes("error")||res.toLowerCase().includes("cannot");
+    el.innerHTML=`<div class="rbox ${isE?"err":"ok"}" style="margin-top:12px"><div class="rlbl">Result</div><div class="rtxt ${isE?"err":""}">${res}</div></div>`;
+  }catch(e){el.innerHTML=errBox(e.message);}
+}
+
+// ── ALGEBRA ──
+function setAlgMode(m){
+  algMode=m;
+  document.getElementById("alg-exp-btn").classList.toggle("active",m==="expand");
+  document.getElementById("alg-fac-btn").classList.toggle("active",m==="factor");
+  document.getElementById("alg-hint").textContent=m==="expand"?"Enter expression to expand. e.g. (x+2)^3 or (a+b)*(a-b)":"Enter polynomial to factor. e.g. x^2-5*x+6 or 2*x^2+3*x+1";
+  document.getElementById("alg-btn").textContent=m==="expand"?"EXPAND":"FACTOR";
+  document.getElementById("alg-inp").placeholder=m==="expand"?"(x+3)^2":"x^2 - 5*x + 6";
+}
+function doAlg(){
+  const inp=document.getElementById("alg-inp").value.trim();
+  const el=document.getElementById("alg-res");
+  if(!inp){el.innerHTML="";return;}
+  const res=algMode==="expand"?expandE(inp):factorP(inp);
+  const isE=res.toLowerCase().includes("error")||res.toLowerCase().includes("cannot");
+  el.innerHTML=`<div class="rbox ${isE?"err":"ok"}" style="margin-top:12px"><div class="rlbl">${algMode==="expand"?"Expanded":"Factored"}</div><div class="rtxt ${isE?"err":""}">${res}</div></div>`;
+}
+function fillId(expr){document.getElementById("alg-inp").value=expr;setAlgMode("expand");goTab("alg");doAlg();}
+
+// ── SOLVER ──
+function renderChips(){
+  document.getElementById("var-chips").innerHTML=vars.map(v=>`<div class="chip" id="chip-${v}"
+    onmousedown="startHold('${v}')" onmouseup="cancelHold()" onmouseleave="cancelHold()"
+    ontouchstart="startHold('${v}')" ontouchend="cancelHold()">${v}<div class="chip-bar" id="cb-${v}" style="width:0%"></div></div>`).join("");
+}
+function renderEqs(){
+  document.getElementById("eqs-wrap").innerHTML=eqs.map((eq,i)=>`<div class="row">
+    <span class="lbl" style="font-size:10px">eq ${i+1}</span>
+    <input class="inp" id="eq-${i}" value="${eq.replace(/"/g,"&quot;")}"
+      placeholder="${i===0?"x/2 + y = 4":i===1?"2*x - y/3 = 1":"z + x*y = 0"}"
+      style="font-size:14px"
+      oninput="eqs[${i}]=this.value" onkeydown="if(event.key==='Enter')doSolve()"/>
+    ${eqs.length>1?`<button class="addchip" style="padding:7px 10px" onclick="rmEq(${i})">×</button>`:""}
+  </div>`).join("");
+}
+function toggleAddVar(){
+  const r=document.getElementById("avar-row");
+  r.classList.toggle("hidden");
+  if(!r.classList.contains("hidden"))document.getElementById("nvar-inp").focus();
+}
+function addVar(){
+  const n=document.getElementById("nvar-inp").value.trim();
+  if(!n||vars.includes(n))return;
+  vars.push(n);document.getElementById("nvar-inp").value="";
+  document.getElementById("avar-row").classList.add("hidden");
+  renderChips();
+}
+function rmEq(i){eqs.splice(i,1);renderEqs();}
+function addEq(){eqs.push("");renderEqs();}
+function startHold(v){
+  holdVar=v;holdProg=0;
+  holdIv=setInterval(()=>{
+    holdProg+=4;
+    const bar=document.getElementById("cb-"+v);
+    const chip=document.getElementById("chip-"+v);
+    if(bar)bar.style.width=holdProg+"%";
+    if(chip){chip.style.borderColor="var(--danger)";chip.style.color="var(--danger)";}
+    if(holdProg>=100){clearInterval(holdIv);vars=vars.filter(x=>x!==v);renderChips();}
+  },40);
+}
+function cancelHold(){
+  clearInterval(holdIv);
+  if(holdVar){
+    const bar=document.getElementById("cb-"+holdVar);
+    const chip=document.getElementById("chip-"+holdVar);
+    if(bar)bar.style.width="0%";
+    if(chip){chip.style.borderColor="";chip.style.color="";}
+  }
+  holdVar=null;holdProg=0;
+}
+function doSolve(){
+  const activeEqs=eqs.filter(e=>e.trim());
+  const el=document.getElementById("solv-res");
+  if(!activeEqs.length){el.innerHTML=errBox("Enter at least one equation.");return;}
+  if(!vars.length){el.innerHTML=errBox("Add at least one variable.");return;}
+  const result=solveSys(activeEqs,vars);
+  if(!result){el.innerHTML=errBox("Could not find a solution. Check equations.");return;}
+  const colors=["var(--accent)","var(--a2)","var(--a3)","var(--purple)"];
+  el.innerHTML=`<div class="rbox ok" style="margin-top:12px">
+    <div class="rlbl">Solution</div>
+    ${result.map((r,i)=>`<div class="rrow" style="border-left-color:${colors[i%colors.length]}">
+      <span class="rv">${r.v}</span><span class="req">=</span>
+      <span class="rn" style="color:${colors[i%colors.length]}">${parseFloat(r.val.toFixed(8))}</span>
+      ${r.f&&r.f.d!==1?`<span class="rf">= ${fracStr(r.f)}</span>`:""}
+    </div>`).join("")}
+  </div>`;
+}
+
+// ── HISTORY ──
+function renderHist(){
+  const el=document.getElementById("hist-list");
+  const btn=document.getElementById("clr-hist");
+  if(!history.length){el.innerHTML=`<div style="text-align:center;color:var(--dim);padding:40px 0;font-size:12px;letter-spacing:2px">NO CALCULATIONS YET</div>`;btn.classList.add("hidden");return;}
+  el.innerHTML=history.map((h,i)=>`<div class="hitem" onclick="useHist(${i})"><span class="hexpr">${h.expr}</span><span class="hval">${h.val}</span></div>`).join("");
+  btn.classList.remove("hidden");
+}
+function useHist(i){display=history[i].val;isRes=true;dFrac="";dHist="";updDisp();goTab("calc");}
+function clrHist(){history=[];renderHist();}
+
+// ── HELPERS ──
+function errBox(msg){return`<div class="rbox err" style="margin-top:12px"><div class="rtxt err">⚠ ${msg}</div></div>`;}
+
+// ── INIT ──
+renderChips();
+renderEqs();
+updDisp();
+
+// Fix keypad height dynamically
+function resizeKeypad(){
+  const shell=document.querySelector(".shell");
+  const hdr=document.querySelector(".hdr");
+  const disp=document.querySelector(".display");
+  const tb=document.querySelector(".tabbar");
+  const total=shell.clientHeight;
+  const used=hdr.offsetHeight+disp.offsetHeight+tb.offsetHeight;
+  const kp=document.querySelector(".keypad");
+  if(kp)kp.style.height=(total-used)+"px";
+}
+window.addEventListener("resize",resizeKeypad);
+setTimeout(resizeKeypad,100);
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="theme-color" content="#060810"/>
+<title>CALC·MATRIX</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne+Mono&family=Syne:wght@700;800&family=DM+Mono:wght@400&display=swap');
+
+:root {
+  --bg: #060810;
+  --surface: #0c0f1e;
+  --s2: #111428;
+  --border: #1c2040;
+  --b2: #252a50;
+  --accent: #e8ff6e;
+  --a2: #6effd4;
+  --a3: #ff6eb4;
+  --text: #c8d0f0;
+  --dim: #4a5280;
+  --bright: #eef0ff;
+  --danger: #ff4466;
+  --glow: #e8ff6e33;
+  --purple: #a78bfa;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+
+html { height: 100%; overflow: hidden; }
+
+body {
+  height: 100%;
+  background: var(--bg);
+  font-family: 'DM Mono', monospace;
+  color: var(--text);
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
+/* ── LAYOUT ── */
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bot);
+}
+
+/* Header */
+.hdr {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px 6px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.hdr-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--bright);
+  letter-spacing: -0.5px;
+}
+.hdr-title span { color: var(--accent); }
+
+/* Tab bar — fixed at bottom */
+.tabbar {
+  flex-shrink: 0;
+  display: flex;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding-bottom: var(--safe-bot);
+}
+.tbbtn {
+  flex: 1;
+  padding: 10px 4px 8px;
+  border: none;
+  background: transparent;
+  color: var(--dim);
+  font-family: 'Syne Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  text-transform: uppercase;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  transition: color .15s;
+}
+.tbbtn .ico { font-size: 18px; line-height: 1; }
+.tbbtn.active { color: var(--accent); }
+.tbbtn.active .ico { text-shadow: 0 0 12px var(--glow); }
+
+/* Content area — scrollable */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Pages */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── CALCULATOR PAGE ── */
+.calc-page {
+  display: none;
+  flex-direction: column;
+  height: 100%;
+}
+.calc-page.active { display: flex; }
+
+.display {
+  flex-shrink: 0;
+  background: var(--bg);
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid var(--border);
+  min-height: 90px;
+}
+.d-hist { font-size: 11px; color: var(--dim); text-align: right; min-height: 15px; font-style: italic; }
+.d-val {
+  font-family: 'Syne', sans-serif;
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--accent);
+  text-align: right;
+  line-height: 1.05;
+  text-shadow: 0 0 24px var(--glow);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: font-size .1s;
+}
+.d-val.sm { font-size: 24px; }
+.d-val.err { color: var(--danger); font-size: 16px; text-shadow: none; }
+.d-frac { font-size: 12px; color: var(--a2); text-align: right; font-family: 'Syne Mono', monospace; margin-top: 2px; min-height: 16px; }
+
+.keypad {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.key {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--s2);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: clamp(10px, 3vw, 14px);
+  cursor: pointer;
+  text-align: center;
+  outline: none;
+  -webkit-appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 0;
+  transition: transform .08s, background .08s;
+  position: relative;
+  overflow: hidden;
+}
+.key::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #ffffff0a, transparent 60%);
+  pointer-events: none;
+}
+.key:active { transform: scale(.93); background: var(--border); }
+
+.key.fn  { color: var(--a2);     border-color: #1a3530; background: #0a1818; font-size: clamp(9px,2.5vw,11px); }
+.key.op  { color: var(--a3);     border-color: #2a1830; background: #150d18; font-size: clamp(14px,4vw,18px); }
+.key.act { color: #ff9944;       border-color: #2a1a0a; background: #130e06; font-size: clamp(9px,2.5vw,11px); }
+.key.eq  {
+  background: var(--accent); color: #0a0c18;
+  border: none; font-family: 'Syne', sans-serif;
+  font-weight: 800; font-size: clamp(18px,5vw,24px);
+  box-shadow: 0 0 16px var(--glow);
+}
+.key.eq:active { background: #f0ff80; }
+.key.pur { color: var(--purple); border-color: #2a1a40; background: #110a20; font-size: clamp(9px,2.5vw,11px); }
+.key.s2  { grid-column: span 2; }
+
+/* ── SECTIONS (non-calc pages) ── */
+.section { padding: 14px; }
+.sec-title {
+  font-family: 'Syne', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--dim);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+.lbl { font-size: 10px; color: var(--dim); min-width: 48px; }
+
+.inp {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 11px 12px;
+  color: var(--bright);
+  font-family: 'DM Mono', monospace;
+  font-size: 14px;
+  outline: none;
+  -webkit-appearance: none;
+  transition: border-color .2s;
+  width: 100%;
+}
+.inp:focus { border-color: var(--accent); }
+.inp::placeholder { color: var(--dim); }
+.inp.ctr { text-align: center; }
+
+.frac-preview {
+  text-align: center;
+  font-family: 'Syne Mono', monospace;
+  margin: 8px 0 12px;
+  padding: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+.fp-n { font-size: 20px; color: var(--accent); border-bottom: 2px solid var(--a2); padding: 0 16px 4px; }
+.fp-d { font-size: 20px; color: var(--a2); padding: 4px 16px 0; }
+
+.abtn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: #0a0c18;
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  cursor: pointer;
+  text-transform: uppercase;
+  box-shadow: 0 0 16px var(--glow);
+  margin-top: 6px;
+  -webkit-appearance: none;
+  transition: transform .1s;
+}
+.abtn:active { transform: scale(.98); }
+.abtn.sec {
+  background: transparent;
+  border: 1px solid var(--b2);
+  color: var(--dim);
+  box-shadow: none;
+}
+
+.rbox {
+  margin-top: 12px;
+  padding: 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.rbox.ok { border-color: #1a3020; }
+.rbox.err { border-color: #3a1020; background: #0e0508; }
+.rlbl { font-size: 9px; letter-spacing: 3px; color: var(--dim); margin-bottom: 10px; text-transform: uppercase; }
+.rrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--s2);
+  margin-bottom: 6px;
+  border-left: 3px solid var(--accent);
+}
+.rv  { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800; color: var(--dim); min-width: 20px; }
+.req { color: var(--dim); }
+.rn  { font-family: 'Syne Mono', monospace; font-size: 16px; color: var(--accent); font-weight: bold; flex: 1; }
+.rf  { font-size: 11px; color: var(--a2); }
+.rtxt { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--accent); white-space: pre-wrap; word-break: break-all; line-height: 1.7; }
+.rtxt.err { color: var(--danger); }
+
+/* sub-tabs */
+.stabs { display: flex; gap: 4px; margin-bottom: 12px; }
+.stab {
+  flex: 1;
+  padding: 9px 4px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--dim);
+  font-family: 'Syne Mono', monospace;
+  font-size: 10px;
+  cursor: pointer;
+  text-align: center;
+  -webkit-appearance: none;
+}
+.stab.active { border-color: var(--accent); color: var(--accent); background: #e8ff6e10; }
+
+/* var chips */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.chip {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--b2);
+  background: var(--s2);
+  color: var(--a2);
+  font-family: 'Syne Mono', monospace;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+.chip-bar { position: absolute; bottom: 0; left: 0; height: 3px; background: var(--danger); border-radius: 2px; }
+.addchip {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1px dashed var(--b2);
+  background: transparent;
+  color: var(--dim);
+  font-family: 'Syne Mono', monospace;
+  font-size: 13px;
+  cursor: pointer;
+  -webkit-appearance: none;
+}
+.avar-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 10px;
+  animation: fadeIn .2s ease;
+}
+.cfmbtn {
+  padding: 9px 14px;
+  border-radius: 7px;
+  border: none;
+  background: var(--accent);
+  color: #0a0c18;
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-appearance: none;
+}
+
+/* identity rows */
+.idrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 12px;
+  border-radius: 8px;
+  background: var(--s2);
+  margin-bottom: 6px;
+  border-left: 3px solid var(--purple);
+  cursor: pointer;
+  active: background var(--border);
+}
+.idrow:active { background: var(--border); }
+
+/* hint */
+.hint { font-size: 10px; color: var(--dim); line-height: 1.6; margin-bottom: 10px; }
+
+/* history */
+.hitem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 11px 12px;
+  border-radius: 8px;
+  background: var(--s2);
+  margin-bottom: 6px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+.hitem:active { background: var(--border); }
+.hexpr { font-size: 12px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 55%; }
+.hval  { font-family: 'Syne Mono', monospace; font-size: 14px; color: var(--accent); }
+
+.divider { height: 20px; }
+.hidden { display: none !important; }
+
+@keyframes fadeIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-title">CALC<span>·</span>MATRIX</div>
+  </div>
+
+  <!-- CALC PAGE (flex column, fixed height) -->
+  <div class="calc-page active" id="page-calc">
+    <div class="display">
+      <div class="d-hist" id="d-hist"></div>
+      <div class="d-val" id="d-val">0</div>
+      <div class="d-frac" id="d-frac"></div>
+    </div>
+    <div class="keypad">
+      <button class="key fn" onclick="press('sin(')">sin(</button>
+      <button class="key fn" onclick="press('cos(')">cos(</button>
+      <button class="key fn" onclick="press('tan(')">tan(</button>
+      <button class="key fn" onclick="press('log(')">log(</button>
+      <button class="key fn" onclick="press('ln(')">ln(</button>
+
+      <button class="key fn" onclick="press('asin(')">asin</button>
+      <button class="key fn" onclick="press('acos(')">acos</button>
+      <button class="key fn" onclick="press('atan(')">atan</button>
+      <button class="key fn" onclick="press('sqrt(')">√(</button>
+      <button class="key fn" onclick="press('^2')">x²</button>
+
+      <button class="key fn" id="paren-btn" onclick="pressParen()">( )</button>
+      <button class="key fn" onclick="press('Math.PI')">π</button>
+      <button class="key fn" onclick="press('Math.E')">e</button>
+      <button class="key pur" onclick="press('^')">xⁿ</button>
+      <button class="key op"  onclick="press('%')">%</button>
+
+      <button class="key" onclick="press('7')">7</button>
+      <button class="key" onclick="press('8')">8</button>
+      <button class="key" onclick="press('9')">9</button>
+      <button class="key op" onclick="press('/')">÷</button>
+      <button class="key act" onclick="clearCalc()">CLR</button>
+
+      <button class="key" onclick="press('4')">4</button>
+      <button class="key" onclick="press('5')">5</button>
+      <button class="key" onclick="press('6')">6</button>
+      <button class="key op" onclick="press('*')">×</button>
+      <button class="key act" onclick="delChar()">DEL</button>
+
+      <button class="key" onclick="press('1')">1</button>
+      <button class="key" onclick="press('2')">2</button>
+      <button class="key" onclick="press('3')">3</button>
+      <button class="key op" onclick="press('-')">−</button>
+      <button class="key eq" onclick="compute()">=</button>
+
+      <button class="key s2" onclick="press('0')">0</button>
+      <button class="key" onclick="press('.')">.</button>
+      <button class="key op" onclick="press('+')">+</button>
+      <button class="key fn" onclick="press('(')">(</button>
+    </div>
+  </div>
+
+  <!-- FRACTIONS PAGE -->
+  <div class="page" id="page-frac">
+    <div class="section">
+      <div class="sec-title">⬡ Simplify Fraction</div>
+      <div class="frac-preview">
+        <div class="fp-n" id="fp-n">a</div>
+        <div class="fp-d" id="fp-d">b</div>
+      </div>
+      <div class="row">
+        <span class="lbl">Numer.</span>
+        <input class="inp ctr" id="fn-inp" placeholder="e.g. 12" oninput="updFP()" onkeydown="if(event.key==='Enter')doSimp()"/>
+      </div>
+      <div class="row">
+        <span class="lbl">Denom.</span>
+        <input class="inp ctr" id="fd-inp" placeholder="e.g. 8" oninput="updFP()" onkeydown="if(event.key==='Enter')doSimp()"/>
+      </div>
+      <button class="abtn" onclick="doSimp()">SIMPLIFY</button>
+      <div id="simp-res"></div>
+
+      <div class="divider"></div>
+      <div class="sec-title">⬡ Fraction Algebra + Unknowns</div>
+      <div class="hint">Use +, −, *, /. Variables supported inside fractions.</div>
+      <div class="row">
+        <input class="inp" id="fa-inp" placeholder="x/2 + (3*x+1)/4" onkeydown="if(event.key==='Enter')doFracAlg()"/>
+      </div>
+      <button class="abtn" onclick="doFracAlg()">COMPUTE</button>
+      <div id="fa-res"></div>
+    </div>
+  </div>
+
+  <!-- ALGEBRA PAGE -->
+  <div class="page" id="page-alg">
+    <div class="section">
+      <div class="sec-title">⬡ Expand & Factor</div>
+      <div class="stabs">
+        <button class="stab active" id="alg-exp-btn" onclick="setAlgMode('expand')">EXPAND</button>
+        <button class="stab" id="alg-fac-btn" onclick="setAlgMode('factor')">FACTOR</button>
+      </div>
+      <div class="hint" id="alg-hint">Enter expression to expand. e.g. (x+2)^3</div>
+      <div class="row">
+        <input class="inp" id="alg-inp" placeholder="(x+3)^2" onkeydown="if(event.key==='Enter')doAlg()"/>
+      </div>
+      <button class="abtn" id="alg-btn" onclick="doAlg()">EXPAND</button>
+      <div id="alg-res"></div>
+
+      <div class="divider"></div>
+      <div class="sec-title">⬡ Common Identities</div>
+      <div class="idrow" onclick="fillId('(a+b)^2')">
+        <span style="color:var(--purple);font-family:'Syne Mono',monospace">(a+b)²</span>
+        <span style="color:var(--dim)">=</span>
+        <span style="font-size:12px;color:var(--text)">a² + 2ab + b²</span>
+      </div>
+      <div class="idrow" onclick="fillId('(a-b)^2')">
+        <span style="color:var(--purple);font-family:'Syne Mono',monospace">(a−b)²</span>
+        <span style="color:var(--dim)">=</span>
+        <span style="font-size:12px;color:var(--text)">a² − 2ab + b²</span>
+      </div>
+      <div class="idrow" onclick="fillId('(a+b)*(a-b)')">
+        <span style="color:var(--purple);font-family:'Syne Mono',monospace">(a+b)(a−b)</span>
+        <span style="color:var(--dim)">=</span>
+        <span style="font-size:12px;color:var(--text)">a² − b²</span>
+      </div>
+      <div class="idrow" onclick="fillId('(a+b)^3')">
+        <span style="color:var(--purple);font-family:'Syne Mono',monospace">(a+b)³</span>
+        <span style="color:var(--dim)">=</span>
+        <span style="font-size:12px;color:var(--text)">a³ + 3a²b + 3ab² + b³</span>
+      </div>
+      <div class="idrow" onclick="fillId('(a-b)^3')">
+        <span style="color:var(--purple);font-family:'Syne Mono',monospace">(a−b)³</span>
+        <span style="color:var(--dim)">=</span>
+        <span style="font-size:12px;color:var(--text)">a³ − 3a²b + 3ab² − b³</span>
+      </div>
+      <div class="hint" style="margin-top:8px">Tap identity to auto-fill & expand</div>
+    </div>
+  </div>
+
+  <!-- SOLVER PAGE -->
+  <div class="page" id="page-solv">
+    <div class="section">
+      <div class="sec-title">⬡ Variables</div>
+      <div class="chips" id="var-chips"></div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <button class="addchip" onclick="toggleAddVar()">+ var</button>
+      </div>
+      <div class="avar-row hidden" id="avar-row">
+        <span class="lbl">New:</span>
+        <input class="inp ctr" id="nvar-inp" placeholder="e.g. z" style="font-size:16px" onkeydown="if(event.key==='Enter')addVar();if(event.key==='Escape')toggleAddVar()"/>
+        <button class="cfmbtn" onclick="addVar()">Add ✓</button>
+      </div>
+      <div class="hint">Hold a variable ~1s to remove it</div>
+
+      <div class="sec-title">⬡ Equations</div>
+      <div class="hint">Use = to separate sides. Fractions OK: x/2 + y/3 = 5</div>
+      <div id="eqs-wrap"></div>
+      <button class="abtn sec" style="margin-bottom:10px" onclick="addEq()">+ Add Equation</button>
+      <button class="abtn" onclick="doSolve()">⬡ SOLVE SYSTEM</button>
+      <div id="solv-res"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY PAGE -->
+  <div class="page" id="page-hist">
+    <div class="section">
+      <div class="sec-title">⬡ Calculation Log</div>
+      <div id="hist-list">
+        <div style="text-align:center;color:var(--dim);padding:40px 0;font-size:12px;letter-spacing:2px">NO CALCULATIONS YET</div>
+      </div>
+      <button class="abtn sec hidden" id="clr-hist" style="margin-top:10px" onclick="clrHist()">Clear History</button>
+    </div>
+  </div>
+
+  <!-- TAB BAR -->
+  <div class="tabbar">
+    <button class="tbbtn active" id="tb-calc" onclick="goTab('calc')"><div class="ico">🔢</div>CALC</button>
+    <button class="tbbtn" id="tb-frac" onclick="goTab('frac')"><div class="ico">➗</div>FRAC</button>
+    <button class="tbbtn" id="tb-alg"  onclick="goTab('alg')"><div class="ico">📐</div>ALGEBRA</button>
+    <button class="tbbtn" id="tb-solv" onclick="goTab('solv')"><div class="ico">⬡</div>SOLVER</button>
+    <button class="tbbtn" id="tb-hist" onclick="goTab('hist')"><div class="ico">📋</div>LOG</button>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  MATH ENGINE
+// ═══════════════════════════════════════════════════════
+function gcd(a,b){a=Math.abs(Math.round(a));b=Math.abs(Math.round(b));while(b){[a,b]=[b,a%b];}return a||1;}
+function frac(n,d=1){if(d===0)return{n:NaN,d:1};if(d<0){n=-n;d=-d;}const g=gcd(Math.abs(n),d);return{n:n/g,d:d/g};}
+function fracStr(f){if(isNaN(f.n))return"undefined";if(f.d===1)return String(f.n);return`${f.n}/${f.d}`;}
+function toFrac(x,mx=1000){
+  if(Number.isInteger(x))return frac(x);
+  const s=x<0?-1:1;x=Math.abs(x);
+  let bN=1,bD=1,bE=Infinity;
+  for(let d=1;d<=mx;d++){const n=Math.round(x*d);const e=Math.abs(x-n/d);if(e<bE){bE=e;bN=n;bD=d;}if(e<1e-9)break;}
+  return frac(s*bN,bD);
+}
+function normMono(vars){return vars.filter(([,e])=>e!==0).sort((a,b)=>a[0].localeCompare(b[0])).map(([v,e])=>e===1?v:`${v}^${e}`).join("*")||"";}
+function polyZero(){return new Map();}
+function polyConst(c){const p=new Map();if(c!==0)p.set("",c);return p;}
+function polyVar(v){const p=new Map();p.set(v,1);return p;}
+function polyAdd(a,b){const r=new Map(a);for(const[k,v]of b)r.set(k,(r.get(k)||0)+v);for(const[k,v]of r)if(Math.abs(v)<1e-12)r.delete(k);return r;}
+function polySub(a,b){const neg=new Map();for(const[k,v]of b)neg.set(k,-v);return polyAdd(a,neg);}
+function monoMul(ma,mb){
+  const pm=m=>{if(!m)return{};const vv={};m.split("*").forEach(t=>{const[v,e]=t.includes("^")?t.split("^"):[t,"1"];vv[v]=(vv[v]||0)+parseInt(e);});return vv;};
+  const va=pm(ma),vb=pm(mb),mg={...va};
+  for(const[v,e]of Object.entries(vb))mg[v]=(mg[v]||0)+e;
+  return normMono(Object.entries(mg));
+}
+function polyMul(a,b){const r=new Map();for(const[ka,va]of a)for(const[kb,vb]of b){const k=monoMul(ka,kb);r.set(k,(r.get(k)||0)+va*vb);}for(const[k,v]of r)if(Math.abs(v)<1e-12)r.delete(k);return r;}
+function polyPow(p,n){let r=polyConst(1);for(let i=0;i<n;i++)r=polyMul(r,p);return r;}
+function polyStr(p){
+  if(p.size===0)return"0";
+  const terms=[...p.entries()].sort((a,b)=>{
+    const da=a[0]?a[0].split("*").reduce((s,t)=>s+parseInt(t.includes("^")?t.split("^")[1]:1),0):-1;
+    const db=b[0]?b[0].split("*").reduce((s,t)=>s+parseInt(t.includes("^")?t.split("^")[1]:1),0):-1;
+    return db-da;
+  });
+  return terms.map(([k,v],i)=>{
+    const sg=v<0?(i===0?"-":" - "):(i===0?"":" + ");
+    const ac=Math.abs(v);
+    const cs=ac===1&&k?"":(Number.isInteger(ac)?String(ac):ac.toFixed(4).replace(/\.?0+$/,""));
+    return sg+cs+(k?k:"");
+  }).join("")||"0";
+}
+function parsePoly(expr){
+  expr=expr.trim().replace(/\s+/g,"");let pos=0;
+  function pE(){return pAS();}
+  function pAS(){let l=pMD();while(pos<expr.length&&(expr[pos]==="+"||expr[pos]==="-")){const op=expr[pos++];const r=pMD();l=op==="+"?polyAdd(l,r):polySub(l,r);}return l;}
+  function pMD(){let l=pPow();while(pos<expr.length&&(expr[pos]==="*"||expr[pos]==="/")){const op=expr[pos++];const r=pPow();if(op==="*")l=polyMul(l,r);else{if(r.size===1&&r.has("")){const d=r.get("");const rm=new Map();for(const[k,v]of l)rm.set(k,v/d);l=rm;}else l=polyConst(NaN);}}return l;}
+  function pPow(){let b=pU();if(pos<expr.length&&expr[pos]==="^"){pos++;const ep=pU();if(ep.size===1&&ep.has("")){const e=ep.get("");if(Number.isInteger(e)&&e>=0)b=polyPow(b,e);else b=polyConst(NaN);}else b=polyConst(NaN);}return b;}
+  function pU(){if(pos<expr.length&&expr[pos]==="-"){pos++;return polySub(polyZero(),pPrim());}if(pos<expr.length&&expr[pos]==="+"){pos++;return pPrim();}return pPrim();}
+  function pPrim(){
+    if(pos<expr.length&&expr[pos]==="("){pos++;const inner=pE();if(pos<expr.length&&expr[pos]===")")pos++;return inner;}
+    if(/[0-9.]/.test(expr[pos]||"")){let s="";while(pos<expr.length&&/[0-9.]/.test(expr[pos]))s+=expr[pos++];return polyConst(parseFloat(s));}
+    if(/[a-zA-Z]/.test(expr[pos]||"")){let s="";while(pos<expr.length&&/[a-zA-Z]/.test(expr[pos]))s+=expr[pos++];if(s==="pi")return polyConst(Math.PI);if(s==="e")return polyConst(Math.E);return polyVar(s);}
+    return polyConst(0);
+  }
+  try{return pE();}catch{return polyConst(NaN);}
+}
+function ratSimp(num,den){
+  const ac=[...num.values(),...den.values()].map(Math.abs);
+  if(!ac.length)return{num,den};
+  const g=ac.reduce(gcd);
+  if(g>1){const n2=new Map();for(const[k,v]of num)n2.set(k,v/g);const d2=new Map();for(const[k,v]of den)d2.set(k,v/g);return{num:n2,den:d2};}
+  return{num,den};
+}
+function factorP(ps){
+  const p=parsePoly(ps);
+  const vars=new Set();for(const k of p.keys())if(k)k.split("*").forEach(t=>vars.add(t.replace(/\^.*/,"")));
+  if(vars.size===0)return`${polyStr(p)} (constant)`;
+  if(vars.size>1){
+    const co=[...p.values()];const g=co.reduce((a,b)=>gcd(Math.abs(Math.round(a)),Math.abs(Math.round(b))));
+    if(g>1){const p2=new Map();for(const[k,v]of p)p2.set(k,v/g);return`${g}(${polyStr(p2)})`;}
+    return polyStr(p)+" (cannot factor further)";
+  }
+  const v=[...vars][0],a=p.get(`${v}^2`)||0,b=p.get(v)||0,c=p.get("")||0;
+  if(a===0&&b!==0){if(c===0)return`${b!==1?b:""}${v}`;return`${b!==1?b:""}(${v} + ${fracStr(toFrac(c/b))})`;}
+  if(a!==0){
+    const disc=b*b-4*a*c,ls=a!==1?String(a):"";
+    if(disc<0)return`${polyStr(p)} (irreducible over ℝ)`;
+    if(disc===0){const r=toFrac(-b/(2*a));return`${ls}(${v} ${r.n>=0?"+":"-"} ${fracStr(frac(Math.abs(r.n),r.d))})²`;}
+    const sq=Math.sqrt(disc);
+    if(Math.abs(sq-Math.round(sq))<1e-9){
+      const fr1=frac(-b+Math.round(sq),2*a),fr2=frac(-b-Math.round(sq),2*a);
+      if(fr1.d===1&&fr2.d===1){
+        const s1=fr1.n>=0?`(${v} - ${fr1.n})`:`(${v} + ${-fr1.n})`;
+        const s2=fr2.n>=0?`(${v} - ${fr2.n})`:`(${v} + ${-fr2.n})`;
+        return`${ls}${s1}${s2}`;
+      }
+      const g1=gcd(Math.abs(Math.round(-b+sq)),Math.abs(2*a))||1,g2=gcd(Math.abs(Math.round(-b-sq)),Math.abs(2*a))||1;
+      const p1=2*a/g1,q1=-(-b+sq)/g1,p2=2*a/g2,q2=-(-b-sq)/g2;
+      const fm=n=>Number.isInteger(n)?String(Math.round(n)):n.toFixed(3).replace(/\.?0+$/,"");
+      return`(${fm(p1)}${v} ${q1>=0?"+":"-"} ${fm(Math.abs(q1))})(${fm(p2)}${v} ${q2>=0?"+":"-"} ${fm(Math.abs(q2))})`;
+    }
+    const r1=(-b+sq)/(2*a),r2=(-b-sq)/(2*a),fm=n=>n.toFixed(4).replace(/\.?0+$/,"");
+    return`${ls}(${v} - ${fm(r1)})(${v} - ${fm(r2)})`;
+  }
+  return polyStr(p);
+}
+function expandE(expr){try{const p=parsePoly(expr);if([...p.values()].some(isNaN))return"Cannot expand";return polyStr(p);}catch{return"Cannot expand";}}
+function fracAlg(input){
+  input=input.trim();
+  if(input.includes("=")){const[l,r]=input.split("=").map(s=>s.trim());return`Left:  ${expandE(l)}\nRight: ${expandE(r)}`;}
+  const pF=s=>{
+    const pts=[];let cur="",sg=1,dp=0;
+    for(let i=0;i<s.length;i++){const c=s[i];if(c==="(")dp++;else if(c===")")dp--;else if(dp===0&&(c==="+"||c==="-")&&i>0){pts.push({raw:cur.trim(),sg});sg=c==="+"?1:-1;cur="";continue;}cur+=c;}
+    if(cur.trim())pts.push({raw:cur.trim(),sg});
+    return pts.map(p=>{const si=p.raw.indexOf("/");if(si===-1)return{num:p.raw,den:"1",sg:p.sg};return{num:p.raw.slice(0,si).trim(),den:p.raw.slice(si+1).trim(),sg:p.sg};});
+  };
+  const parts=pF(input);if(!parts.length)return"";
+  let rN=parsePoly(parts[0].num),rD=parsePoly(parts[0].den);
+  for(let i=1;i<parts.length;i++){
+    const{num,den,sg}=parts[i];const np=parsePoly(num),dp=parsePoly(den);
+    rN=sg===1?polyAdd(polyMul(rN,dp),polyMul(np,rD)):polySub(polyMul(rN,dp),polyMul(np,rD));
+    rD=polyMul(rD,dp);
+  }
+  const{num:sn,den:sd}=ratSimp(rN,rD);
+  const ns=polyStr(sn),ds=polyStr(sd);
+  return ds==="1"?ns:`(${ns}) / (${ds})`;
+}
+function gaussSolve(M,C){
+  const n=M.length,aug=M.map((r,i)=>[...r,C[i]]);
+  for(let c=0;c<n;c++){
+    let mr=c;for(let r=c+1;r<n;r++)if(Math.abs(aug[r][c])>Math.abs(aug[mr][c]))mr=r;
+    [aug[c],aug[mr]]=[aug[mr],aug[c]];
+    if(Math.abs(aug[c][c])<1e-10)return null;
+    const pv=aug[c][c];for(let j=c;j<=n;j++)aug[c][j]/=pv;
+    for(let r=0;r<n;r++){if(r===c)continue;const f=aug[r][c];for(let j=c;j<=n;j++)aug[r][j]-=f*aug[c][j];}
+  }
+  return aug.map(r=>r[n]);
+}
+function evalS(expr,vars={}){
+  try{
+    let e=expr;
+    for(const[k,v]of Object.entries(vars))e=e.replace(new RegExp(`(?<![a-zA-Z])${k}(?![a-zA-Z])`,"g"),`(${v})`);
+    e=e.replace(/\^/g,"**").replace(/sin\(/g,"Math.sin(").replace(/cos\(/g,"Math.cos(").replace(/tan\(/g,"Math.tan(")
+       .replace(/asin\(/g,"Math.asin(").replace(/acos\(/g,"Math.acos(").replace(/atan\(/g,"Math.atan(")
+       .replace(/sqrt\(/g,"Math.sqrt(").replace(/log\(/g,"Math.log10(").replace(/ln\(/g,"Math.log(").replace(/abs\(/g,"Math.abs(");
+    return Function('"use strict";return('+e+")")();
+  }catch{return NaN;}
+}
+function solveSys(eqs,vs){
+  const n=vs.length,M=[],C=[];
+  for(const eq of eqs){
+    const pts=eq.split("=");if(pts.length!==2)continue;
+    const cb=`(${pts[0].trim()})-(${pts[1].trim()})`;
+    const row=[];let lin=true;
+    for(const v of vs){
+      const wv=Object.fromEntries(vs.map(vv=>[vv,vv===v?1:0]));
+      const wo=Object.fromEntries(vs.map(vv=>[vv,0]));
+      const a=evalS(cb,wv),b=evalS(cb,wo);
+      if(isNaN(a)||isNaN(b)){lin=false;break;}row.push(a-b);
+    }
+    if(!lin)break;
+    C.push(-evalS(cb,Object.fromEntries(vs.map(v=>[v,0]))));M.push(row);
+  }
+  if(M.length===n){const sol=gaussSolve(M,C);if(sol)return vs.map((v,i)=>({v,val:sol[i],f:toFrac(sol[i])}));}
+  if(n===2){
+    const[v1,v2]=vs;
+    const f0=eqs[0].includes("=")?`(${eqs[0].split("=")[0]})-(${eqs[0].split("=")[1]})`:eqs[0];
+    const f1=eqs[1].includes("=")?`(${eqs[1].split("=")[0]})-(${eqs[1].split("=")[1]})`:eqs[1];
+    let x=[0.5,0.5];
+    const F=v=>[evalS(f0,{[v1]:v[0],[v2]:v[1]}),evalS(f1,{[v1]:v[0],[v2]:v[1]})];
+    const h=1e-5;
+    for(let i=0;i<500;i++){
+      const fv=F(x);if(Math.abs(fv[0])<1e-9&&Math.abs(fv[1])<1e-9)break;
+      const J=[[(evalS(f0,{[v1]:x[0]+h,[v2]:x[1]})-fv[0])/h,(evalS(f0,{[v1]:x[0],[v2]:x[1]+h})-fv[0])/h],
+               [(evalS(f1,{[v1]:x[0]+h,[v2]:x[1]})-fv[1])/h,(evalS(f1,{[v1]:x[0],[v2]:x[1]+h})-fv[1])/h]];
+      const det=J[0][0]*J[1][1]-J[0][1]*J[1][0];if(Math.abs(det)<1e-15)break;
+      x=[x[0]-(J[1][1]*fv[0]-J[0][1]*fv[1])/det,x[1]-(-J[1][0]*fv[0]+J[0][0]*fv[1])/det];
+    }
+    const fv=F(x);if(Math.abs(fv[0])<1e-6&&Math.abs(fv[1])<1e-6)return vs.map((v,i)=>({v,val:x[i],f:toFrac(x[i])}));
+  }
+  if(n===1){
+    const v=vs[0];
+    const es=eqs[0].includes("=")?`(${eqs[0].split("=")[0]})-(${eqs[0].split("=")[1]})`:eqs[0];
+    const F=val=>evalS(es,{[v]:val});
+    const roots=[];
+    for(let s=-200;s<200;s+=0.5){const fa=F(s),fb=F(s+0.5);if(isNaN(fa)||isNaN(fb)||fa*fb>0)continue;let a=s,b=s+0.5;for(let i=0;i<100;i++){const m=(a+b)/2,fm=F(m);if(Math.abs(fm)<1e-10||(b-a)<1e-12){roots.push(parseFloat(m.toFixed(8)));break;}F(a)*fm<0?(b=m):(a=m);}}
+    const u=[...new Set(roots.map(r=>r.toFixed(6)))].map(Number);
+    if(u.length>0)return u.map(r=>({v,val:r,f:toFrac(r)}));
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════
+//  UI STATE
+// ═══════════════════════════════════════════════════════
+let display="0", dHist="", dFrac="", isRes=false, history=[];
+let vars=["x","y"], eqs=["",""];
+let holdVar=null, holdProg=0, holdIv=null, algMode="expand";
+
+// ── TABS ──
+function goTab(name){
+  ["calc","frac","alg","solv","hist"].forEach(t=>{
+    const pg=document.getElementById("page-"+t);
+    if(t==="calc"){pg.classList.toggle("active",t===name);}
+    else{pg.classList.toggle("active",t===name);}
+  });
+  document.querySelectorAll(".tbbtn").forEach(b=>b.classList.remove("active"));
+  document.getElementById("tb-"+name).classList.add("active");
+  if(name==="hist")renderHist();
+}
+
+// Override for calc page special handling
+document.querySelectorAll(".page,.calc-page").forEach(el=>{});
+
+// ── CALCULATOR ──
+function updDisp(){
+  const el=document.getElementById("d-val");
+  el.textContent=display;
+  el.className="d-val"+(display.length>13?" sm":"")+(isRes&&(display.includes("error")||display.includes("zero"))?" err":"");
+  document.getElementById("d-hist").textContent=dHist;
+  document.getElementById("d-frac").textContent=dFrac;
+  const op=(display.match(/\(/g)||[]).length,cl=(display.match(/\)/g)||[]).length;
+  document.getElementById("paren-btn").textContent=op>cl?")":" ( ";
+}
+function press(v){
+  if(isRes){
+    if(/[0-9.(]/.test(v)||v==="Math.PI"||v==="Math.E"){display=v==="Math.PI"?"π":v==="Math.E"?"e":v;}
+    else display+=v;
+    dFrac="";isRes=false;
+  } else {
+    if(display==="0"&&/^[0-9]$/.test(v))display=v;
+    else if(display==="0"&&v===".")display="0.";
+    else display+=v;
+  }
+  updDisp();
+}
+function pressParen(){const op=(display.match(/\(/g)||[]).length,cl=(display.match(/\)/g)||[]).length;press(op>cl?")":"(");}
+function clearCalc(){display="0";dHist="";dFrac="";isRes=false;updDisp();}
+function delChar(){if(isRes){display="0";dFrac="";isRes=false;}else display=display.length<=1?"0":display.slice(0,-1);updDisp();}
+function compute(){
+  let expr=display.replace(/π/g,"Math.PI").replace(/(?<![a-z])e(?![a-z])/g,"Math.E");
+  expr=expr.replace(/log\(/g,"Math.log10(").replace(/ln\(/g,"Math.log(").replace(/sin\(/g,"Math.sin(").replace(/cos\(/g,"Math.cos(").replace(/tan\(/g,"Math.tan(").replace(/asin\(/g,"Math.asin(").replace(/acos\(/g,"Math.acos(").replace(/atan\(/g,"Math.atan(").replace(/sqrt\(/g,"Math.sqrt(").replace(/\^/g,"**");
+  try{
+    const result=Function('"use strict";return('+expr+")")();
+    if(!isFinite(result)){display="Division by zero";dFrac="";isRes=true;updDisp();return;}
+    const fmt=parseFloat(result.toFixed(10)).toString();
+    const f=toFrac(result);
+    dFrac=f.d!==1?`= ${fracStr(f)}`:"";
+    dHist=display+" =";
+    history=[{expr:display,val:fmt},...history.slice(0,19)];
+    display=fmt;isRes=true;
+  }catch{dHist=display;display="Syntax error";dFrac="";isRes=true;}
+  updDisp();
+}
+
+// ── FRACTIONS ──
+function updFP(){
+  document.getElementById("fp-n").textContent=document.getElementById("fn-inp").value||"a";
+  document.getElementById("fp-d").textContent=document.getElementById("fd-inp").value||"b";
+}
+function doSimp(){
+  const n=parseFloat(document.getElementById("fn-inp").value);
+  const d=parseFloat(document.getElementById("fd-inp").value);
+  const el=document.getElementById("simp-res");
+  if(isNaN(n)){el.innerHTML=errBox("Enter a valid numerator");return;}
+  if(isNaN(d)){el.innerHTML=errBox("Enter a valid denominator");return;}
+  if(d===0){el.innerHTML=errBox("Denominator cannot be zero");return;}
+  const s=frac(n,d),dec=n/d,tr=Math.trunc(dec),rem=frac(Math.abs(s.n%s.d),s.d);
+  const mix=s.d!==1?(tr!==0?`${tr} ${fracStr(rem)}`:fracStr(rem)):"";
+  el.innerHTML=`<div class="rbox ok" style="margin-top:12px">
+    <div class="rlbl">Result</div>
+    <div class="rrow"><span class="rv">Simplified</span><span class="req">=</span><span class="rn">${fracStr(s)}</span></div>
+    <div class="rrow" style="border-left-color:var(--a2)"><span class="rv">Decimal</span><span class="req">=</span><span class="rn" style="color:var(--a2)">${dec.toFixed(8).replace(/\.?0+$/,"")}</span></div>
+    ${s.d!==1?`<div class="rrow" style="border-left-color:var(--a3)"><span class="rv">Mixed</span><span class="req">=</span><span class="rn" style="color:var(--a3)">${mix}</span></div>`:""}
+  </div>`;
+}
+function doFracAlg(){
+  const inp=document.getElementById("fa-inp").value.trim();
+  const el=document.getElementById("fa-res");
+  if(!inp){el.innerHTML="";return;}
+  try{
+    const res=fracAlg(inp);
+    const isE=res.toLowerCase().includes("error")||res.toLowerCase().includes("cannot");
+    el.innerHTML=`<div class="rbox ${isE?"err":"ok"}" style="margin-top:12px"><div class="rlbl">Result</div><div class="rtxt ${isE?"err":""}">${res}</div></div>`;
+  }catch(e){el.innerHTML=errBox(e.message);}
+}
+
+// ── ALGEBRA ──
+function setAlgMode(m){
+  algMode=m;
+  document.getElementById("alg-exp-btn").classList.toggle("active",m==="expand");
+  document.getElementById("alg-fac-btn").classList.toggle("active",m==="factor");
+  document.getElementById("alg-hint").textContent=m==="expand"?"Enter expression to expand. e.g. (x+2)^3 or (a+b)*(a-b)":"Enter polynomial to factor. e.g. x^2-5*x+6 or 2*x^2+3*x+1";
+  document.getElementById("alg-btn").textContent=m==="expand"?"EXPAND":"FACTOR";
+  document.getElementById("alg-inp").placeholder=m==="expand"?"(x+3)^2":"x^2 - 5*x + 6";
+}
+function doAlg(){
+  const inp=document.getElementById("alg-inp").value.trim();
+  const el=document.getElementById("alg-res");
+  if(!inp){el.innerHTML="";return;}
+  const res=algMode==="expand"?expandE(inp):factorP(inp);
+  const isE=res.toLowerCase().includes("error")||res.toLowerCase().includes("cannot");
+  el.innerHTML=`<div class="rbox ${isE?"err":"ok"}" style="margin-top:12px"><div class="rlbl">${algMode==="expand"?"Expanded":"Factored"}</div><div class="rtxt ${isE?"err":""}">${res}</div></div>`;
+}
+function fillId(expr){document.getElementById("alg-inp").value=expr;setAlgMode("expand");goTab("alg");doAlg();}
+
+// ── SOLVER ──
+function renderChips(){
+  document.getElementById("var-chips").innerHTML=vars.map(v=>`<div class="chip" id="chip-${v}"
+    onmousedown="startHold('${v}')" onmouseup="cancelHold()" onmouseleave="cancelHold()"
+    ontouchstart="startHold('${v}')" ontouchend="cancelHold()">${v}<div class="chip-bar" id="cb-${v}" style="width:0%"></div></div>`).join("");
+}
+function renderEqs(){
+  document.getElementById("eqs-wrap").innerHTML=eqs.map((eq,i)=>`<div class="row">
+    <span class="lbl" style="font-size:10px">eq ${i+1}</span>
+    <input class="inp" id="eq-${i}" value="${eq.replace(/"/g,"&quot;")}"
+      placeholder="${i===0?"x/2 + y = 4":i===1?"2*x - y/3 = 1":"z + x*y = 0"}"
+      style="font-size:14px"
+      oninput="eqs[${i}]=this.value" onkeydown="if(event.key==='Enter')doSolve()"/>
+    ${eqs.length>1?`<button class="addchip" style="padding:7px 10px" onclick="rmEq(${i})">×</button>`:""}
+  </div>`).join("");
+}
+function toggleAddVar(){
+  const r=document.getElementById("avar-row");
+  r.classList.toggle("hidden");
+  if(!r.classList.contains("hidden"))document.getElementById("nvar-inp").focus();
+}
+function addVar(){
+  const n=document.getElementById("nvar-inp").value.trim();
+  if(!n||vars.includes(n))return;
+  vars.push(n);document.getElementById("nvar-inp").value="";
+  document.getElementById("avar-row").classList.add("hidden");
+  renderChips();
+}
+function rmEq(i){eqs.splice(i,1);renderEqs();}
+function addEq(){eqs.push("");renderEqs();}
+function startHold(v){
+  holdVar=v;holdProg=0;
+  holdIv=setInterval(()=>{
+    holdProg+=4;
+    const bar=document.getElementById("cb-"+v);
+    const chip=document.getElementById("chip-"+v);
+    if(bar)bar.style.width=holdProg+"%";
+    if(chip){chip.style.borderColor="var(--danger)";chip.style.color="var(--danger)";}
+    if(holdProg>=100){clearInterval(holdIv);vars=vars.filter(x=>x!==v);renderChips();}
+  },40);
+}
+function cancelHold(){
+  clearInterval(holdIv);
+  if(holdVar){
+    const bar=document.getElementById("cb-"+holdVar);
+    const chip=document.getElementById("chip-"+holdVar);
+    if(bar)bar.style.width="0%";
+    if(chip){chip.style.borderColor="";chip.style.color="";}
+  }
+  holdVar=null;holdProg=0;
+}
+function doSolve(){
+  const activeEqs=eqs.filter(e=>e.trim());
+  const el=document.getElementById("solv-res");
+  if(!activeEqs.length){el.innerHTML=errBox("Enter at least one equation.");return;}
+  if(!vars.length){el.innerHTML=errBox("Add at least one variable.");return;}
+  const result=solveSys(activeEqs,vars);
+  if(!result){el.innerHTML=errBox("Could not find a solution. Check equations.");return;}
+  const colors=["var(--accent)","var(--a2)","var(--a3)","var(--purple)"];
+  el.innerHTML=`<div class="rbox ok" style="margin-top:12px">
+    <div class="rlbl">Solution</div>
+    ${result.map((r,i)=>`<div class="rrow" style="border-left-color:${colors[i%colors.length]}">
+      <span class="rv">${r.v}</span><span class="req">=</span>
+      <span class="rn" style="color:${colors[i%colors.length]}">${parseFloat(r.val.toFixed(8))}</span>
+      ${r.f&&r.f.d!==1?`<span class="rf">= ${fracStr(r.f)}</span>`:""}
+    </div>`).join("")}
+  </div>`;
+}
+
+// ── HISTORY ──
+function renderHist(){
+  const el=document.getElementById("hist-list");
+  const btn=document.getElementById("clr-hist");
+  if(!history.length){el.innerHTML=`<div style="text-align:center;color:var(--dim);padding:40px 0;font-size:12px;letter-spacing:2px">NO CALCULATIONS YET</div>`;btn.classList.add("hidden");return;}
+  el.innerHTML=history.map((h,i)=>`<div class="hitem" onclick="useHist(${i})"><span class="hexpr">${h.expr}</span><span class="hval">${h.val}</span></div>`).join("");
+  btn.classList.remove("hidden");
+}
+function useHist(i){display=history[i].val;isRes=true;dFrac="";dHist="";updDisp();goTab("calc");}
+function clrHist(){history=[];renderHist();}
+
+// ── HELPERS ──
+function errBox(msg){return`<div class="rbox err" style="margin-top:12px"><div class="rtxt err">⚠ ${msg}</div></div>`;}
+
+// ── INIT ──
+renderChips();
+renderEqs();
+updDisp();
+
+// Fix keypad height dynamically
+function resizeKeypad(){
+  const shell=document.querySelector(".shell");
+  const hdr=document.querySelector(".hdr");
+  const disp=document.querySelector(".display");
+  const tb=document.querySelector(".tabbar");
+  const total=shell.clientHeight;
+  const used=hdr.offsetHeight+disp.offsetHeight+tb.offsetHeight;
+  const kp=document.querySelector(".keypad");
+  if(kp)kp.style.height=(total-used)+"px";
+}
+window.addEventListener("resize",resizeKeypad);
+setTimeout(resizeKeypad,100);
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="theme-color" content="#060810"/>
+<title>CALC·MATRIX</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne+Mono&family=Syne:wght@700;800&family=DM+Mono:wght@400&display=swap');
+
+:root {
+  --bg: #060810;
+  --surface: #0c0f1e;
+  --s2: #111428;
+  --border: #1c2040;
+  --b2: #252a50;
+  --accent: #e8ff6e;
+  --a2: #6effd4;
+  --a3: #ff6eb4;
+  --text: #c8d0f0;
+  --dim: #4a5280;
+  --bright: #eef0ff;
+  --danger: #ff4466;
+  --glow: #e8ff6e33;
+  --purple: #a78bfa;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+
+html { height: 100%; overflow: hidden; }
+
+body {
+  height: 100%;
+  background: var(--bg);
+  font-family: 'DM Mono', monospace;
+  color: var(--text);
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
+/* ── LAYOUT ── */
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bot);
+}
+
+/* Header */
+.hdr {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px 6px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.hdr-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--bright);
+  letter-spacing: -0.5px;
+}
+.hdr-title span { color: var(--accent); }
+
+/* Tab bar — fixed at bottom */
+.tabbar {
+  flex-shrink: 0;
+  display: flex;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding-bottom: var(--safe-bot);
+}
+.tbbtn {
+  flex: 1;
+  padding: 10px 4px 8px;
+  border: none;
+  background: transparent;
+  color: var(--dim);
+  font-family: 'Syne Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  text-transform: uppercase;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  transition: color .15s;
+}
+.tbbtn .ico { font-size: 18px; line-height: 1; }
+.tbbtn.active { color: var(--accent); }
+.tbbtn.active .ico { text-shadow: 0 0 12px var(--glow); }
+
+/* Content area — scrollable */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Pages */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── CALCULATOR PAGE ── */
+.calc-page {
+  display: none;
+  flex-direction: column;
+  height: 100%;
+}
+.calc-page.active { display: flex; }
+
+.display {
+  flex-shrink: 0;
+  background: var(--bg);
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid var(--border);
+  min-height: 90px;
+}
+.d-hist { font-size: 11px; color: var(--dim); text-align: right; min-height: 15px; font-style: italic; }
+.d-val {
+  font-family: 'Syne', sans-serif;
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--accent);
+  text-align: right;
+  line-height: 1.05;
+  text-shadow: 0 0 24px var(--glow);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: font-size .1s;
+}
+.d-val.sm { font-size: 24px; }
+.d-val.err { color: var(--danger); font-size: 16px; text-shadow: none; }
+.d-frac { font-size: 12px; color: var(--a2); text-align: right; font-family: 'Syne Mono', monospace; margin-top: 2px; min-height: 16px; }
+
+.keypad {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.key {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--s2);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: clamp(10px, 3vw, 14px);
+  cursor: pointer;
+  text-align: center;
+  outline: none;
+  -webkit-appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 0;
+  transition: transform .08s, background .08s;
+  position: relative;
+  overflow: hidden;
+}
+.key::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #ffffff0a, transparent 60%);
+  pointer-events: none;
+}
+.key:active { transform: scale(.93); background: var(--border); }
+
+.key.fn  { color: var(--a2);     border-color: #1a3530; background: #0a1818; font-size: clamp(9px,2.5vw,11px); }
+.key.op  { color: var(--a3);     border-color: #2a1830; background: #150d18; font-size: clamp(14px,4vw,18px); }
+.key.act { color: #ff9944;       border-color: #2a1a0a; background: #130e06; font-size: clamp(9px,2.5vw,11px); }
+.key.eq  {
+  background: var(--accent); color: #0a0c18;
+  border: none; font-family: 'Syne', sans-serif;
+  font-weight: 800; font-size: clamp(18px,5vw,24px);
+  box-shadow: 0 0 16px var(--glow);
+}
+.key.eq:active { background: #f0ff80; }
+.key.pur { color: var(--purple); border-color: #2a1a40; background: #110a20; font-size: clamp(9px,2.5vw,11px); }
+.key.s2  { grid-column: span 2; }
+
+/* ── SECTIONS (non-calc pages) ── */
+.section { padding: 14px; }
+.sec-title {
+  font-family: 'Syne', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--dim);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+.lbl { font-size: 10px; color: var(--dim); min-width: 48px; }
+
+.inp {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 11px 12px;
+  color: var(--bright);
+  font-family: 'DM Mono', monospace;
+  font-size: 14px;
+  outline: none;
+  -webkit-appearance: none;
+  transition: border-color .2s;
+  width: 100%;
+}
+.inp:focus { border-color: var(--accent); }
+.inp::placeholder { color: var(--dim); }
+.inp.ctr { text-align: center; }
+
+.frac-preview {
+  text-align: center;
+  font-family: 'Syne Mono', monospace;
+  margin: 8px 0 12px;
+  padding: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+.fp-n { font-size: 20px; color: var(--accent); border-bottom: 2px solid var(--a2); padding: 0 16px 4px; }
+.fp-d { font-size: 20px; color: var(--a2); padding: 4px 16px 0; }
+
+.abtn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: #0a0c18;
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  cursor: pointer;
+  text-transform: uppercase;
+  box-shadow: 0 0 16px var(--glow);
+  margin-top: 6px;
+  -webkit-appearance: none;
+  transition: transform .1s;
+}
+.abtn:active { transform: scale(.98); }
+.abtn.sec {
+  background: transparent;
+  border: 1px solid var(--b2);
+  color: var(--dim);
+  box-shadow: none;
+}
+
+.rbox {
+  margin-top: 12px;
+  padding: 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.rbox.ok { border-color: #1a3020; }
+.rbox.err { border-color: #3a1020; background: #0e0508; }
+.rlbl { font-size: 9px; letter-spacing: 3px; color: var(--dim); margin-bottom: 10px; text-transform: uppercase; }
+.rrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--s2);
+  margin-bottom: 6px;
+  border-left: 3px solid var(--accent);
+}
+.rv  { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800; color: var(--dim); min-width: 20px; }
+.req { color: var(--dim); }
+.rn  { font-family: 'Syne Mono', monospace; font-size: 16px; color: var(--accent); font-weight: bold; flex: 1; }
+.rf  { font-size: 11px; color: var(--a2); }
+.rtxt { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--accent); white-space: pre-wrap; word-break: break-all; line-height: 1.7; }
+.rtxt.err { color: var(--danger); }
+
+/* sub-tabs */
+.stabs { display: flex; gap: 4px; margin-bottom: 12px; }
+.stab {
+  flex: 1;
+  padding: 9px 4px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--dim);
+  font-family: 'Syne Mono', monospace;
+  font-size: 10px;
+  cursor: pointer;
+  text-align: center;
+  -webkit-appearance: none;
+}
+.stab.active { border-color: var(--accent); color: var(--accent); background: #e8ff6e10; }
+
+/* var chips */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.chip {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--b2);
+  background: var(--s2);
+  color: var(--a2);
+  font-family: 'Syne Mono', monospace;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+.chip-bar { position: absolute; bottom: 0; left: 0; height: 3px; background: var(--danger); border-radius: 2px; }
+.addchip {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1px dashed var(--b2);
+  background: transparent;
+  color: var(--dim);
+  font-family: 'Syne Mono', monospace;
+  font-size: 13px;
+  cursor: pointer;
+  -webkit-appearance: none;
+}
+.avar-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 10px;
+  animation: fadeIn .2s ease;
+}
+.cfmbtn {
+  padding: 9px 14px;
+  border-radius: 7px;
+  border: none;
+  background: var(--accent);
+  color: #0a0c18;
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-appearance: none;
+}
+
+/* identity rows */
+.idrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 12px;
+  border-radius: 8px;
+  background: var(--s2);
+  margin-bottom: 6px;
+  border-left: 3px solid var(--purple);
+  cursor: pointer;
+  active: background var(--border);
+}
+.idrow:active { background: var(--border); }
+
+/* hint */
+.hint { font-size: 10px; color: var(--dim); line-height: 1.6; margin-bottom: 10px; }
+
+/* history */
+.hitem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 11px 12px;
+  border-radius: 8px;
+  background: var(--s2);
+  margin-bottom: 6px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+.hitem:active { background: var(--border); }
+.hexpr { font-size: 12px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 55%; }
+.hval  { font-family: 'Syne Mono', monospace; font-size: 14px; color: var(--accent); }
+
+.divider { height: 20px; }
+.hidden { display: none !important; }
+
+@keyframes fadeIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-title">CALC<span>·</span>MATRIX</div>
+  </div>
+
+  <!-- CALC PAGE (flex column, fixed height) -->
+  <div class="calc-page active" id="page-calc">
+    <div class="display">
+      <div class="d-hist" id="d-hist"></div>
+      <div class="d-val" id="d-val">0</div>
+      <div class="d-frac" id="d-frac"></div>
+    </div>
+    <div class="keypad">
+      <button class="key fn" onclick="press('sin(')">sin(</button>
+      <button class="key fn" onclick="press('cos(')">cos(</button>
+      <button class="key fn" onclick="press('tan(')">tan(</button>
+      <button class="key fn" onclick="press('log(')">log(</button>
+      <button class="key fn" onclick="press('ln(')">ln(</button>
+
+      <button class="key fn" onclick="press('asin(')">asin</button>
+      <button class="key fn" onclick="press('acos(')">acos</button>
+      <button class="key fn" onclick="press('atan(')">atan</button>
+      <button class="key fn" onclick="press('sqrt(')">√(</button>
+      <button class="key fn" onclick="press('^2')">x²</button>
+
+      <button class="key fn" id="paren-btn" onclick="pressParen()">( )</button>
+      <button class="key fn" onclick="press('Math.PI')">π</button>
+      <button class="key fn" onclick="press('Math.E')">e</button>
+      <button class="key pur" onclick="press('^')">xⁿ</button>
+      <button class="key op"  onclick="press('%')">%</button>
+
+      <button class="key" onclick="press('7')">7</button>
+      <button class="key" onclick="press('8')">8</button>
+      <button class="key" onclick="press('9')">9</button>
+      <button class="key op" onclick="press('/')">÷</button>
+      <button class="key act" onclick="clearCalc()">CLR</button>
+
+      <button class="key" onclick="press('4')">4</button>
+      <button class="key" onclick="press('5')">5</button>
+      <button class="key" onclick="press('6')">6</button>
+      <button class="key op" onclick="press('*')">×</button>
+      <button class="key act" onclick="delChar()">DEL</button>
+
+      <button class="key" onclick="press('1')">1</button>
+      <button class="key" onclick="press('2')">2</button>
+      <button class="key" onclick="press('3')">3</button>
+      <button class="key op" onclick="press('-')">−</button>
+      <button class="key eq" onclick="compute()">=</button>
+
+      <button class="key s2" onclick="press('0')">0</button>
+      <button class="key" onclick="press('.')">.</button>
+      <button class="key op" onclick="press('+')">+</button>
+      <button class="key fn" onclick="press('(')">(</button>
+    </div>
+  </div>
+
+  <!-- FRACTIONS PAGE -->
+  <div class="page" id="page-frac">
+    <div class="section">
+      <div class="sec-title">⬡ Simplify Fraction</div>
+      <div class="frac-preview">
+        <div class="fp-n" id="fp-n">a</div>
+        <div class="fp-d" id="fp-d">b</div>
+      </div>
+      <div class="row">
+        <span class="lbl">Numer.</span>
+        <input class="inp ctr" id="fn-inp" placeholder="e.g. 12" oninput="updFP()" onkeydown="if(event.key==='Enter')doSimp()"/>
+      </div>
+      <div class="row">
+        <span class="lbl">Denom.</span>
+        <input class="inp ctr" id="fd-inp" placeholder="e.g. 8" oninput="updFP()" onkeydown="if(event.key==='Enter')doSimp()"/>
+      </div>
+      <button class="abtn" onclick="doSimp()">SIMPLIFY</button>
+      <div id="simp-res"></div>
+
+      <div class="divider"></div>
+      <div class="sec-title">⬡ Fraction Algebra + Unknowns</div>
+      <div class="hint">Use +, −, *, /. Variables supported inside fractions.</div>
+      <div class="row">
+        <input class="inp" id="fa-inp" placeholder="x/2 + (3*x+1)/4" onkeydown="if(event.key==='Enter')doFracAlg()"/>
+      </div>
+      <button class="abtn" onclick="doFracAlg()">COMPUTE</button>
+      <div id="fa-res"></div>
+    </div>
+  </div>
+
+  <!-- ALGEBRA PAGE -->
+  <div class="page" id="page-alg">
+    <div class="section">
+      <div class="sec-title">⬡ Expand & Factor</div>
+      <div class="stabs">
+        <button class="stab active" id="alg-exp-btn" onclick="setAlgMode('expand')">EXPAND</button>
+        <button class="stab" id="alg-fac-btn" onclick="setAlgMode('factor')">FACTOR</button>
+      </div>
+      <div class="hint" id="alg-hint">Enter expression to expand. e.g. (x+2)^3</div>
+      <div class="row">
+        <input class="inp" id="alg-inp" placeholder="(x+3)^2" onkeydown="if(event.key==='Enter')doAlg()"/>
+      </div>
+      <button class="abtn" id="alg-btn" onclick="doAlg()">EXPAND</button>
+      <div id="alg-res"></div>
+
+      <div class="divider"></div>
+      <div class="sec-title">⬡ Common Identities</div>
+      <div class="idrow" onclick="fillId('(a+b)^2')">
+        <span style="color:var(--purple);font-family:'Syne Mono',monospace">(a+b)²</span>
+        <span style="color:var(--dim)">=</span>
+        <span style="font-size:12px;color:var(--text)">a² + 2ab + b²</span>
+      </div>
+      <div class="idrow" onclick="fillId('(a-b)^2')">
+        <span style="color:var(--purple);font-family:'Syne Mono',monospace">(a−b)²</span>
+        <span style="color:var(--dim)">=</span>
+        <span style="font-size:12px;color:var(--text)">a² − 2ab + b²</span>
+      </div>
+      <div class="idrow" onclick="fillId('(a+b)*(a-b)')">
+        <span style="color:var(--purple);font-family:'Syne Mono',monospace">(a+b)(a−b)</span>
+        <span style="color:var(--dim)">=</span>
+        <span style="font-size:12px;color:var(--text)">a² − b²</span>
+      </div>
+      <div class="idrow" onclick="fillId('(a+b)^3')">
+        <span style="color:var(--purple);font-family:'Syne Mono',monospace">(a+b)³</span>
+        <span style="color:var(--dim)">=</span>
+        <span style="font-size:12px;color:var(--text)">a³ + 3a²b + 3ab² + b³</span>
+      </div>
+      <div class="idrow" onclick="fillId('(a-b)^3')">
+        <span style="color:var(--purple);font-family:'Syne Mono',monospace">(a−b)³</span>
+        <span style="color:var(--dim)">=</span>
+        <span style="font-size:12px;color:var(--text)">a³ − 3a²b + 3ab² − b³</span>
+      </div>
+      <div class="hint" style="margin-top:8px">Tap identity to auto-fill & expand</div>
+    </div>
+  </div>
+
+  <!-- SOLVER PAGE -->
+  <div class="page" id="page-solv">
+    <div class="section">
+      <div class="sec-title">⬡ Variables</div>
+      <div class="chips" id="var-chips"></div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <button class="addchip" onclick="toggleAddVar()">+ var</button>
+      </div>
+      <div class="avar-row hidden" id="avar-row">
+        <span class="lbl">New:</span>
+        <input class="inp ctr" id="nvar-inp" placeholder="e.g. z" style="font-size:16px" onkeydown="if(event.key==='Enter')addVar();if(event.key==='Escape')toggleAddVar()"/>
+        <button class="cfmbtn" onclick="addVar()">Add ✓</button>
+      </div>
+      <div class="hint">Hold a variable ~1s to remove it</div>
+
+      <div class="sec-title">⬡ Equations</div>
+      <div class="hint">Use = to separate sides. Fractions OK: x/2 + y/3 = 5</div>
+      <div id="eqs-wrap"></div>
+      <button class="abtn sec" style="margin-bottom:10px" onclick="addEq()">+ Add Equation</button>
+      <button class="abtn" onclick="doSolve()">⬡ SOLVE SYSTEM</button>
+      <div id="solv-res"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY PAGE -->
+  <div class="page" id="page-hist">
+    <div class="section">
+      <div class="sec-title">⬡ Calculation Log</div>
+      <div id="hist-list">
+        <div style="text-align:center;color:var(--dim);padding:40px 0;font-size:12px;letter-spacing:2px">NO CALCULATIONS YET</div>
+      </div>
+      <button class="abtn sec hidden" id="clr-hist" style="margin-top:10px" onclick="clrHist()">Clear History</button>
+    </div>
+  </div>
+
+  <!-- TAB BAR -->
+  <div class="tabbar">
+    <button class="tbbtn active" id="tb-calc" onclick="goTab('calc')"><div class="ico">🔢</div>CALC</button>
+    <button class="tbbtn" id="tb-frac" onclick="goTab('frac')"><div class="ico">➗</div>FRAC</button>
+    <button class="tbbtn" id="tb-alg"  onclick="goTab('alg')"><div class="ico">📐</div>ALGEBRA</button>
+    <button class="tbbtn" id="tb-solv" onclick="goTab('solv')"><div class="ico">⬡</div>SOLVER</button>
+    <button class="tbbtn" id="tb-hist" onclick="goTab('hist')"><div class="ico">📋</div>LOG</button>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  MATH ENGINE
+// ═══════════════════════════════════════════════════════
+function gcd(a,b){a=Math.abs(Math.round(a));b=Math.abs(Math.round(b));while(b){[a,b]=[b,a%b];}return a||1;}
+function frac(n,d=1){if(d===0)return{n:NaN,d:1};if(d<0){n=-n;d=-d;}const g=gcd(Math.abs(n),d);return{n:n/g,d:d/g};}
+function fracStr(f){if(isNaN(f.n))return"undefined";if(f.d===1)return String(f.n);return`${f.n}/${f.d}`;}
+function toFrac(x,mx=1000){
+  if(Number.isInteger(x))return frac(x);
+  const s=x<0?-1:1;x=Math.abs(x);
+  let bN=1,bD=1,bE=Infinity;
+  for(let d=1;d<=mx;d++){const n=Math.round(x*d);const e=Math.abs(x-n/d);if(e<bE){bE=e;bN=n;bD=d;}if(e<1e-9)break;}
+  return frac(s*bN,bD);
+}
+function normMono(vars){return vars.filter(([,e])=>e!==0).sort((a,b)=>a[0].localeCompare(b[0])).map(([v,e])=>e===1?v:`${v}^${e}`).join("*")||"";}
+function polyZero(){return new Map();}
+function polyConst(c){const p=new Map();if(c!==0)p.set("",c);return p;}
+function polyVar(v){const p=new Map();p.set(v,1);return p;}
+function polyAdd(a,b){const r=new Map(a);for(const[k,v]of b)r.set(k,(r.get(k)||0)+v);for(const[k,v]of r)if(Math.abs(v)<1e-12)r.delete(k);return r;}
+function polySub(a,b){const neg=new Map();for(const[k,v]of b)neg.set(k,-v);return polyAdd(a,neg);}
+function monoMul(ma,mb){
+  const pm=m=>{if(!m)return{};const vv={};m.split("*").forEach(t=>{const[v,e]=t.includes("^")?t.split("^"):[t,"1"];vv[v]=(vv[v]||0)+parseInt(e);});return vv;};
+  const va=pm(ma),vb=pm(mb),mg={...va};
+  for(const[v,e]of Object.entries(vb))mg[v]=(mg[v]||0)+e;
+  return normMono(Object.entries(mg));
+}
+function polyMul(a,b){const r=new Map();for(const[ka,va]of a)for(const[kb,vb]of b){const k=monoMul(ka,kb);r.set(k,(r.get(k)||0)+va*vb);}for(const[k,v]of r)if(Math.abs(v)<1e-12)r.delete(k);return r;}
+function polyPow(p,n){let r=polyConst(1);for(let i=0;i<n;i++)r=polyMul(r,p);return r;}
+function polyStr(p){
+  if(p.size===0)return"0";
+  const terms=[...p.entries()].sort((a,b)=>{
+    const da=a[0]?a[0].split("*").reduce((s,t)=>s+parseInt(t.includes("^")?t.split("^")[1]:1),0):-1;
+    const db=b[0]?b[0].split("*").reduce((s,t)=>s+parseInt(t.includes("^")?t.split("^")[1]:1),0):-1;
+    return db-da;
+  });
+  return terms.map(([k,v],i)=>{
+    const sg=v<0?(i===0?"-":" - "):(i===0?"":" + ");
+    const ac=Math.abs(v);
+    const cs=ac===1&&k?"":(Number.isInteger(ac)?String(ac):ac.toFixed(4).replace(/\.?0+$/,""));
+    return sg+cs+(k?k:"");
+  }).join("")||"0";
+}
+function parsePoly(expr){
+  expr=expr.trim().replace(/\s+/g,"");let pos=0;
+  function pE(){return pAS();}
+  function pAS(){let l=pMD();while(pos<expr.length&&(expr[pos]==="+"||expr[pos]==="-")){const op=expr[pos++];const r=pMD();l=op==="+"?polyAdd(l,r):polySub(l,r);}return l;}
+  function pMD(){let l=pPow();while(pos<expr.length&&(expr[pos]==="*"||expr[pos]==="/")){const op=expr[pos++];const r=pPow();if(op==="*")l=polyMul(l,r);else{if(r.size===1&&r.has("")){const d=r.get("");const rm=new Map();for(const[k,v]of l)rm.set(k,v/d);l=rm;}else l=polyConst(NaN);}}return l;}
+  function pPow(){let b=pU();if(pos<expr.length&&expr[pos]==="^"){pos++;const ep=pU();if(ep.size===1&&ep.has("")){const e=ep.get("");if(Number.isInteger(e)&&e>=0)b=polyPow(b,e);else b=polyConst(NaN);}else b=polyConst(NaN);}return b;}
+  function pU(){if(pos<expr.length&&expr[pos]==="-"){pos++;return polySub(polyZero(),pPrim());}if(pos<expr.length&&expr[pos]==="+"){pos++;return pPrim();}return pPrim();}
+  function pPrim(){
+    if(pos<expr.length&&expr[pos]==="("){pos++;const inner=pE();if(pos<expr.length&&expr[pos]===")")pos++;return inner;}
+    if(/[0-9.]/.test(expr[pos]||"")){let s="";while(pos<expr.length&&/[0-9.]/.test(expr[pos]))s+=expr[pos++];return polyConst(parseFloat(s));}
+    if(/[a-zA-Z]/.test(expr[pos]||"")){let s="";while(pos<expr.length&&/[a-zA-Z]/.test(expr[pos]))s+=expr[pos++];if(s==="pi")return polyConst(Math.PI);if(s==="e")return polyConst(Math.E);return polyVar(s);}
+    return polyConst(0);
+  }
+  try{return pE();}catch{return polyConst(NaN);}
+}
+function ratSimp(num,den){
+  const ac=[...num.values(),...den.values()].map(Math.abs);
+  if(!ac.length)return{num,den};
+  const g=ac.reduce(gcd);
+  if(g>1){const n2=new Map();for(const[k,v]of num)n2.set(k,v/g);const d2=new Map();for(const[k,v]of den)d2.set(k,v/g);return{num:n2,den:d2};}
+  return{num,den};
+}
+function factorP(ps){
+  const p=parsePoly(ps);
+  const vars=new Set();for(const k of p.keys())if(k)k.split("*").forEach(t=>vars.add(t.replace(/\^.*/,"")));
+  if(vars.size===0)return`${polyStr(p)} (constant)`;
+  if(vars.size>1){
+    const co=[...p.values()];const g=co.reduce((a,b)=>gcd(Math.abs(Math.round(a)),Math.abs(Math.round(b))));
+    if(g>1){const p2=new Map();for(const[k,v]of p)p2.set(k,v/g);return`${g}(${polyStr(p2)})`;}
+    return polyStr(p)+" (cannot factor further)";
+  }
+  const v=[...vars][0],a=p.get(`${v}^2`)||0,b=p.get(v)||0,c=p.get("")||0;
+  if(a===0&&b!==0){if(c===0)return`${b!==1?b:""}${v}`;return`${b!==1?b:""}(${v} + ${fracStr(toFrac(c/b))})`;}
+  if(a!==0){
+    const disc=b*b-4*a*c,ls=a!==1?String(a):"";
+    if(disc<0)return`${polyStr(p)} (irreducible over ℝ)`;
+    if(disc===0){const r=toFrac(-b/(2*a));return`${ls}(${v} ${r.n>=0?"+":"-"} ${fracStr(frac(Math.abs(r.n),r.d))})²`;}
+    const sq=Math.sqrt(disc);
+    if(Math.abs(sq-Math.round(sq))<1e-9){
+      const fr1=frac(-b+Math.round(sq),2*a),fr2=frac(-b-Math.round(sq),2*a);
+      if(fr1.d===1&&fr2.d===1){
+        const s1=fr1.n>=0?`(${v} - ${fr1.n})`:`(${v} + ${-fr1.n})`;
+        const s2=fr2.n>=0?`(${v} - ${fr2.n})`:`(${v} + ${-fr2.n})`;
+        return`${ls}${s1}${s2}`;
+      }
+      const g1=gcd(Math.abs(Math.round(-b+sq)),Math.abs(2*a))||1,g2=gcd(Math.abs(Math.round(-b-sq)),Math.abs(2*a))||1;
+      const p1=2*a/g1,q1=-(-b+sq)/g1,p2=2*a/g2,q2=-(-b-sq)/g2;
+      const fm=n=>Number.isInteger(n)?String(Math.round(n)):n.toFixed(3).replace(/\.?0+$/,"");
+      return`(${fm(p1)}${v} ${q1>=0?"+":"-"} ${fm(Math.abs(q1))})(${fm(p2)}${v} ${q2>=0?"+":"-"} ${fm(Math.abs(q2))})`;
+    }
+    const r1=(-b+sq)/(2*a),r2=(-b-sq)/(2*a),fm=n=>n.toFixed(4).replace(/\.?0+$/,"");
+    return`${ls}(${v} - ${fm(r1)})(${v} - ${fm(r2)})`;
+  }
+  return polyStr(p);
+}
+function expandE(expr){try{const p=parsePoly(expr);if([...p.values()].some(isNaN))return"Cannot expand";return polyStr(p);}catch{return"Cannot expand";}}
+function fracAlg(input){
+  input=input.trim();
+  if(input.includes("=")){const[l,r]=input.split("=").map(s=>s.trim());return`Left:  ${expandE(l)}\nRight: ${expandE(r)}`;}
+  const pF=s=>{
+    const pts=[];let cur="",sg=1,dp=0;
+    for(let i=0;i<s.length;i++){const c=s[i];if(c==="(")dp++;else if(c===")")dp--;else if(dp===0&&(c==="+"||c==="-")&&i>0){pts.push({raw:cur.trim(),sg});sg=c==="+"?1:-1;cur="";continue;}cur+=c;}
+    if(cur.trim())pts.push({raw:cur.trim(),sg});
+    return pts.map(p=>{const si=p.raw.indexOf("/");if(si===-1)return{num:p.raw,den:"1",sg:p.sg};return{num:p.raw.slice(0,si).trim(),den:p.raw.slice(si+1).trim(),sg:p.sg};});
+  };
+  const parts=pF(input);if(!parts.length)return"";
+  let rN=parsePoly(parts[0].num),rD=parsePoly(parts[0].den);
+  for(let i=1;i<parts.length;i++){
+    const{num,den,sg}=parts[i];const np=parsePoly(num),dp=parsePoly(den);
+    rN=sg===1?polyAdd(polyMul(rN,dp),polyMul(np,rD)):polySub(polyMul(rN,dp),polyMul(np,rD));
+    rD=polyMul(rD,dp);
+  }
+  const{num:sn,den:sd}=ratSimp(rN,rD);
+  const ns=polyStr(sn),ds=polyStr(sd);
+  return ds==="1"?ns:`(${ns}) / (${ds})`;
+}
+function gaussSolve(M,C){
+  const n=M.length,aug=M.map((r,i)=>[...r,C[i]]);
+  for(let c=0;c<n;c++){
+    let mr=c;for(let r=c+1;r<n;r++)if(Math.abs(aug[r][c])>Math.abs(aug[mr][c]))mr=r;
+    [aug[c],aug[mr]]=[aug[mr],aug[c]];
+    if(Math.abs(aug[c][c])<1e-10)return null;
+    const pv=aug[c][c];for(let j=c;j<=n;j++)aug[c][j]/=pv;
+    for(let r=0;r<n;r++){if(r===c)continue;const f=aug[r][c];for(let j=c;j<=n;j++)aug[r][j]-=f*aug[c][j];}
+  }
+  return aug.map(r=>r[n]);
+}
+function evalS(expr,vars={}){
+  try{
+    let e=expr;
+    for(const[k,v]of Object.entries(vars))e=e.replace(new RegExp(`(?<![a-zA-Z])${k}(?![a-zA-Z])`,"g"),`(${v})`);
+    e=e.replace(/\^/g,"**").replace(/sin\(/g,"Math.sin(").replace(/cos\(/g,"Math.cos(").replace(/tan\(/g,"Math.tan(")
+       .replace(/asin\(/g,"Math.asin(").replace(/acos\(/g,"Math.acos(").replace(/atan\(/g,"Math.atan(")
+       .replace(/sqrt\(/g,"Math.sqrt(").replace(/log\(/g,"Math.log10(").replace(/ln\(/g,"Math.log(").replace(/abs\(/g,"Math.abs(");
+    return Function('"use strict";return('+e+")")();
+  }catch{return NaN;}
+}
+function solveSys(eqs,vs){
+  const n=vs.length,M=[],C=[];
+  for(const eq of eqs){
+    const pts=eq.split("=");if(pts.length!==2)continue;
+    const cb=`(${pts[0].trim()})-(${pts[1].trim()})`;
+    const row=[];let lin=true;
+    for(const v of vs){
+      const wv=Object.fromEntries(vs.map(vv=>[vv,vv===v?1:0]));
+      const wo=Object.fromEntries(vs.map(vv=>[vv,0]));
+      const a=evalS(cb,wv),b=evalS(cb,wo);
+      if(isNaN(a)||isNaN(b)){lin=false;break;}row.push(a-b);
+    }
+    if(!lin)break;
+    C.push(-evalS(cb,Object.fromEntries(vs.map(v=>[v,0]))));M.push(row);
+  }
+  if(M.length===n){const sol=gaussSolve(M,C);if(sol)return vs.map((v,i)=>({v,val:sol[i],f:toFrac(sol[i])}));}
+  if(n===2){
+    const[v1,v2]=vs;
+    const f0=eqs[0].includes("=")?`(${eqs[0].split("=")[0]})-(${eqs[0].split("=")[1]})`:eqs[0];
+    const f1=eqs[1].includes("=")?`(${eqs[1].split("=")[0]})-(${eqs[1].split("=")[1]})`:eqs[1];
+    let x=[0.5,0.5];
+    const F=v=>[evalS(f0,{[v1]:v[0],[v2]:v[1]}),evalS(f1,{[v1]:v[0],[v2]:v[1]})];
+    const h=1e-5;
+    for(let i=0;i<500;i++){
+      const fv=F(x);if(Math.abs(fv[0])<1e-9&&Math.abs(fv[1])<1e-9)break;
+      const J=[[(evalS(f0,{[v1]:x[0]+h,[v2]:x[1]})-fv[0])/h,(evalS(f0,{[v1]:x[0],[v2]:x[1]+h})-fv[0])/h],
+               [(evalS(f1,{[v1]:x[0]+h,[v2]:x[1]})-fv[1])/h,(evalS(f1,{[v1]:x[0],[v2]:x[1]+h})-fv[1])/h]];
+      const det=J[0][0]*J[1][1]-J[0][1]*J[1][0];if(Math.abs(det)<1e-15)break;
+      x=[x[0]-(J[1][1]*fv[0]-J[0][1]*fv[1])/det,x[1]-(-J[1][0]*fv[0]+J[0][0]*fv[1])/det];
+    }
+    const fv=F(x);if(Math.abs(fv[0])<1e-6&&Math.abs(fv[1])<1e-6)return vs.map((v,i)=>({v,val:x[i],f:toFrac(x[i])}));
+  }
+  if(n===1){
+    const v=vs[0];
+    const es=eqs[0].includes("=")?`(${eqs[0].split("=")[0]})-(${eqs[0].split("=")[1]})`:eqs[0];
+    const F=val=>evalS(es,{[v]:val});
+    const roots=[];
+    for(let s=-200;s<200;s+=0.5){const fa=F(s),fb=F(s+0.5);if(isNaN(fa)||isNaN(fb)||fa*fb>0)continue;let a=s,b=s+0.5;for(let i=0;i<100;i++){const m=(a+b)/2,fm=F(m);if(Math.abs(fm)<1e-10||(b-a)<1e-12){roots.push(parseFloat(m.toFixed(8)));break;}F(a)*fm<0?(b=m):(a=m);}}
+    const u=[...new Set(roots.map(r=>r.toFixed(6)))].map(Number);
+    if(u.length>0)return u.map(r=>({v,val:r,f:toFrac(r)}));
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════
+//  UI STATE
+// ═══════════════════════════════════════════════════════
+let display="0", dHist="", dFrac="", isRes=false, history=[];
+let vars=["x","y"], eqs=["",""];
+let holdVar=null, holdProg=0, holdIv=null, algMode="expand";
+
+// ── TABS ──
+function goTab(name){
+  ["calc","frac","alg","solv","hist"].forEach(t=>{
+    const pg=document.getElementById("page-"+t);
+    if(t==="calc"){pg.classList.toggle("active",t===name);}
+    else{pg.classList.toggle("active",t===name);}
+  });
+  document.querySelectorAll(".tbbtn").forEach(b=>b.classList.remove("active"));
+  document.getElementById("tb-"+name).classList.add("active");
+  if(name==="hist")renderHist();
+}
+
+// Override for calc page special handling
+document.querySelectorAll(".page,.calc-page").forEach(el=>{});
+
+// ── CALCULATOR ──
+function updDisp(){
+  const el=document.getElementById("d-val");
+  el.textContent=display;
+  el.className="d-val"+(display.length>13?" sm":"")+(isRes&&(display.includes("error")||display.includes("zero"))?" err":"");
+  document.getElementById("d-hist").textContent=dHist;
+  document.getElementById("d-frac").textContent=dFrac;
+  const op=(display.match(/\(/g)||[]).length,cl=(display.match(/\)/g)||[]).length;
+  document.getElementById("paren-btn").textContent=op>cl?")":" ( ";
+}
+function press(v){
+  if(isRes){
+    if(/[0-9.(]/.test(v)||v==="Math.PI"||v==="Math.E"){display=v==="Math.PI"?"π":v==="Math.E"?"e":v;}
+    else display+=v;
+    dFrac="";isRes=false;
+  } else {
+    if(display==="0"&&/^[0-9]$/.test(v))display=v;
+    else if(display==="0"&&v===".")display="0.";
+    else display+=v;
+  }
+  updDisp();
+}
+function pressParen(){const op=(display.match(/\(/g)||[]).length,cl=(display.match(/\)/g)||[]).length;press(op>cl?")":"(");}
+function clearCalc(){display="0";dHist="";dFrac="";isRes=false;updDisp();}
+function delChar(){if(isRes){display="0";dFrac="";isRes=false;}else display=display.length<=1?"0":display.slice(0,-1);updDisp();}
+function compute(){
+  let expr=display.replace(/π/g,"Math.PI").replace(/(?<![a-z])e(?![a-z])/g,"Math.E");
+  expr=expr.replace(/log\(/g,"Math.log10(").replace(/ln\(/g,"Math.log(").replace(/sin\(/g,"Math.sin(").replace(/cos\(/g,"Math.cos(").replace(/tan\(/g,"Math.tan(").replace(/asin\(/g,"Math.asin(").replace(/acos\(/g,"Math.acos(").replace(/atan\(/g,"Math.atan(").replace(/sqrt\(/g,"Math.sqrt(").replace(/\^/g,"**");
+  try{
+    const result=Function('"use strict";return('+expr+")")();
+    if(!isFinite(result)){display="Division by zero";dFrac="";isRes=true;updDisp();return;}
+    const fmt=parseFloat(result.toFixed(10)).toString();
+    const f=toFrac(result);
+    dFrac=f.d!==1?`= ${fracStr(f)}`:"";
+    dHist=display+" =";
+    history=[{expr:display,val:fmt},...history.slice(0,19)];
+    display=fmt;isRes=true;
+  }catch{dHist=display;display="Syntax error";dFrac="";isRes=true;}
+  updDisp();
+}
+
+// ── FRACTIONS ──
+function updFP(){
+  document.getElementById("fp-n").textContent=document.getElementById("fn-inp").value||"a";
+  document.getElementById("fp-d").textContent=document.getElementById("fd-inp").value||"b";
+}
+function doSimp(){
+  const n=parseFloat(document.getElementById("fn-inp").value);
+  const d=parseFloat(document.getElementById("fd-inp").value);
+  const el=document.getElementById("simp-res");
+  if(isNaN(n)){el.innerHTML=errBox("Enter a valid numerator");return;}
+  if(isNaN(d)){el.innerHTML=errBox("Enter a valid denominator");return;}
+  if(d===0){el.innerHTML=errBox("Denominator cannot be zero");return;}
+  const s=frac(n,d),dec=n/d,tr=Math.trunc(dec),rem=frac(Math.abs(s.n%s.d),s.d);
+  const mix=s.d!==1?(tr!==0?`${tr} ${fracStr(rem)}`:fracStr(rem)):"";
+  el.innerHTML=`<div class="rbox ok" style="margin-top:12px">
+    <div class="rlbl">Result</div>
+    <div class="rrow"><span class="rv">Simplified</span><span class="req">=</span><span class="rn">${fracStr(s)}</span></div>
+    <div class="rrow" style="border-left-color:var(--a2)"><span class="rv">Decimal</span><span class="req">=</span><span class="rn" style="color:var(--a2)">${dec.toFixed(8).replace(/\.?0+$/,"")}</span></div>
+    ${s.d!==1?`<div class="rrow" style="border-left-color:var(--a3)"><span class="rv">Mixed</span><span class="req">=</span><span class="rn" style="color:var(--a3)">${mix}</span></div>`:""}
+  </div>`;
+}
+function doFracAlg(){
+  const inp=document.getElementById("fa-inp").value.trim();
+  const el=document.getElementById("fa-res");
+  if(!inp){el.innerHTML="";return;}
+  try{
+    const res=fracAlg(inp);
+    const isE=res.toLowerCase().includes("error")||res.toLowerCase().includes("cannot");
+    el.innerHTML=`<div class="rbox ${isE?"err":"ok"}" style="margin-top:12px"><div class="rlbl">Result</div><div class="rtxt ${isE?"err":""}">${res}</div></div>`;
+  }catch(e){el.innerHTML=errBox(e.message);}
+}
+
+// ── ALGEBRA ──
+function setAlgMode(m){
+  algMode=m;
+  document.getElementById("alg-exp-btn").classList.toggle("active",m==="expand");
+  document.getElementById("alg-fac-btn").classList.toggle("active",m==="factor");
+  document.getElementById("alg-hint").textContent=m==="expand"?"Enter expression to expand. e.g. (x+2)^3 or (a+b)*(a-b)":"Enter polynomial to factor. e.g. x^2-5*x+6 or 2*x^2+3*x+1";
+  document.getElementById("alg-btn").textContent=m==="expand"?"EXPAND":"FACTOR";
+  document.getElementById("alg-inp").placeholder=m==="expand"?"(x+3)^2":"x^2 - 5*x + 6";
+}
+function doAlg(){
+  const inp=document.getElementById("alg-inp").value.trim();
+  const el=document.getElementById("alg-res");
+  if(!inp){el.innerHTML="";return;}
+  const res=algMode==="expand"?expandE(inp):factorP(inp);
+  const isE=res.toLowerCase().includes("error")||res.toLowerCase().includes("cannot");
+  el.innerHTML=`<div class="rbox ${isE?"err":"ok"}" style="margin-top:12px"><div class="rlbl">${algMode==="expand"?"Expanded":"Factored"}</div><div class="rtxt ${isE?"err":""}">${res}</div></div>`;
+}
+function fillId(expr){document.getElementById("alg-inp").value=expr;setAlgMode("expand");goTab("alg");doAlg();}
+
+// ── SOLVER ──
+function renderChips(){
+  document.getElementById("var-chips").innerHTML=vars.map(v=>`<div class="chip" id="chip-${v}"
+    onmousedown="startHold('${v}')" onmouseup="cancelHold()" onmouseleave="cancelHold()"
+    ontouchstart="startHold('${v}')" ontouchend="cancelHold()">${v}<div class="chip-bar" id="cb-${v}" style="width:0%"></div></div>`).join("");
+}
+function renderEqs(){
+  document.getElementById("eqs-wrap").innerHTML=eqs.map((eq,i)=>`<div class="row">
+    <span class="lbl" style="font-size:10px">eq ${i+1}</span>
+    <input class="inp" id="eq-${i}" value="${eq.replace(/"/g,"&quot;")}"
+      placeholder="${i===0?"x/2 + y = 4":i===1?"2*x - y/3 = 1":"z + x*y = 0"}"
+      style="font-size:14px"
+      oninput="eqs[${i}]=this.value" onkeydown="if(event.key==='Enter')doSolve()"/>
+    ${eqs.length>1?`<button class="addchip" style="padding:7px 10px" onclick="rmEq(${i})">×</button>`:""}
+  </div>`).join("");
+}
+function toggleAddVar(){
+  const r=document.getElementById("avar-row");
+  r.classList.toggle("hidden");
+  if(!r.classList.contains("hidden"))document.getElementById("nvar-inp").focus();
+}
+function addVar(){
+  const n=document.getElementById("nvar-inp").value.trim();
+  if(!n||vars.includes(n))return;
+  vars.push(n);document.getElementById("nvar-inp").value="";
+  document.getElementById("avar-row").classList.add("hidden");
+  renderChips();
+}
+function rmEq(i){eqs.splice(i,1);renderEqs();}
+function addEq(){eqs.push("");renderEqs();}
+function startHold(v){
+  holdVar=v;holdProg=0;
+  holdIv=setInterval(()=>{
+    holdProg+=4;
+    const bar=document.getElementById("cb-"+v);
+    const chip=document.getElementById("chip-"+v);
+    if(bar)bar.style.width=holdProg+"%";
+    if(chip){chip.style.borderColor="var(--danger)";chip.style.color="var(--danger)";}
+    if(holdProg>=100){clearInterval(holdIv);vars=vars.filter(x=>x!==v);renderChips();}
+  },40);
+}
+function cancelHold(){
+  clearInterval(holdIv);
+  if(holdVar){
+    const bar=document.getElementById("cb-"+holdVar);
+    const chip=document.getElementById("chip-"+holdVar);
+    if(bar)bar.style.width="0%";
+    if(chip){chip.style.borderColor="";chip.style.color="";}
+  }
+  holdVar=null;holdProg=0;
+}
+function doSolve(){
+  const activeEqs=eqs.filter(e=>e.trim());
+  const el=document.getElementById("solv-res");
+  if(!activeEqs.length){el.innerHTML=errBox("Enter at least one equation.");return;}
+  if(!vars.length){el.innerHTML=errBox("Add at least one variable.");return;}
+  const result=solveSys(activeEqs,vars);
+  if(!result){el.innerHTML=errBox("Could not find a solution. Check equations.");return;}
+  const colors=["var(--accent)","var(--a2)","var(--a3)","var(--purple)"];
+  el.innerHTML=`<div class="rbox ok" style="margin-top:12px">
+    <div class="rlbl">Solution</div>
+    ${result.map((r,i)=>`<div class="rrow" style="border-left-color:${colors[i%colors.length]}">
+      <span class="rv">${r.v}</span><span class="req">=</span>
+      <span class="rn" style="color:${colors[i%colors.length]}">${parseFloat(r.val.toFixed(8))}</span>
+      ${r.f&&r.f.d!==1?`<span class="rf">= ${fracStr(r.f)}</span>`:""}
+    </div>`).join("")}
+  </div>`;
+}
+
+// ── HISTORY ──
+function renderHist(){
+  const el=document.getElementById("hist-list");
+  const btn=document.getElementById("clr-hist");
+  if(!history.length){el.innerHTML=`<div style="text-align:center;color:var(--dim);padding:40px 0;font-size:12px;letter-spacing:2px">NO CALCULATIONS YET</div>`;btn.classList.add("hidden");return;}
+  el.innerHTML=history.map((h,i)=>`<div class="hitem" onclick="useHist(${i})"><span class="hexpr">${h.expr}</span><span class="hval">${h.val}</span></div>`).join("");
+  btn.classList.remove("hidden");
+}
+function useHist(i){display=history[i].val;isRes=true;dFrac="";dHist="";updDisp();goTab("calc");}
+function clrHist(){history=[];renderHist();}
+
+// ── HELPERS ──
+function errBox(msg){return`<div class="rbox err" style="margin-top:12px"><div class="rtxt err">⚠ ${msg}</div></div>`;}
+
+// ── INIT ──
+renderChips();
+renderEqs();
+updDisp();
+
+// Fix keypad height dynamically
+function resizeKeypad(){
+  const shell=document.querySelector(".shell");
+  const hdr=document.querySelector(".hdr");
+  const disp=document.querySelector(".display");
+  const tb=document.querySelector(".tabbar");
+  const total=shell.clientHeight;
+  const used=hdr.offsetHeight+disp.offsetHeight+tb.offsetHeight;
+  const kp=document.querySelector(".keypad");
+  if(kp)kp.style.height=(total-used)+"px";
+}
+window.addEventListener("resize",resizeKeypad);
+setTimeout(resizeKeypad,100);
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="theme-color" content="#060810"/>
+<title>CALC·MATRIX</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne+Mono&family=Syne:wght@700;800&family=DM+Mono:wght@400&display=swap');
+
+:root {
+  --bg: #060810;
+  --surface: #0c0f1e;
+  --s2: #111428;
+  --border: #1c2040;
+  --b2: #252a50;
+  --accent: #e8ff6e;
+  --a2: #6effd4;
+  --a3: #ff6eb4;
+  --text: #c8d0f0;
+  --dim: #4a5280;
+  --bright: #eef0ff;
+  --danger: #ff4466;
+  --glow: #e8ff6e33;
+  --purple: #a78bfa;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+
+html { height: 100%; overflow: hidden; }
+
+body {
+  height: 100%;
+  background: var(--bg);
+  font-family: 'DM Mono', monospace;
+  color: var(--text);
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
+/* ── LAYOUT ── */
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bot);
+}
+
+/* Header */
+.hdr {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px 6px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.hdr-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--bright);
+  letter-spacing: -0.5px;
+}
+.hdr-title span { color: var(--accent); }
+
+/* Tab bar — fixed at bottom */
+.tabbar {
+  flex-shrink: 0;
+  display: flex;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding-bottom: var(--safe-bot);
+}
+.tbbtn {
+  flex: 1;
+  padding: 10px 4px 8px;
+  border: none;
+  background: transparent;
+  color: var(--dim);
+  font-family: 'Syne Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  text-transform: uppercase;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  transition: color .15s;
+}
+.tbbtn .ico { font-size: 18px; line-height: 1; }
+.tbbtn.active { color: var(--accent); }
+.tbbtn.active .ico { text-shadow: 0 0 12px var(--glow); }
+
+/* Content area — scrollable */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Pages */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── CALCULATOR PAGE ── */
+.calc-page {
+  display: none;
+  flex-direction: column;
+  height: 100%;
+}
+.calc-page.active { display: flex; }
+
+.display {
+  flex-shrink: 0;
+  background: var(--bg);
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid var(--border);
+  min-height: 90px;
+}
+.d-hist { font-size: 11px; color: var(--dim); text-align: right; min-height: 15px; font-style: italic; }
+.d-val {
+  font-family: 'Syne', sans-serif;
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--accent);
+  text-align: right;
+  line-height: 1.05;
+  text-shadow: 0 0 24px var(--glow);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: font-size .1s;
+}
+.d-val.sm { font-size: 24px; }
+.d-val.err { color: var(--danger); font-size: 16px; text-shadow: none; }
+.d-frac { font-size: 12px; color: var(--a2); text-align: right; font-family: 'Syne Mono', monospace; margin-top: 2px; min-height: 16px; }
+
+.keypad {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.key {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--s2);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: clamp(10px, 3vw, 14px);
+  cursor: pointer;
+  text-align: center;
+  outline: none;
+  -webkit-appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 0;
+  transition: transform .08s, background .08s;
+  position: relative;
+  overflow: hidden;
+}
+.key::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #ffffff0a, transparent 60%);
+  pointer-events: none;
+}
+.key:active { transform: scale(.93); background: var(--border); }
+
+.key.fn  { color: var(--a2);     border-color: #1a3530; background: #0a1818; font-size: clamp(9px,2.5vw,11px); }
+.key.op  { color: var(--a3);     border-color: #2a1830; background: #150d18; font-size: clamp(14px,4vw,18px); }
+.key.act { color: #ff9944;       border-color: #2a1a0a; background: #130e06; font-size: clamp(9px,2.5vw,11px); }
+.key.eq  {
+  background: var(--accent); color: #0a0c18;
+  border: none; font-family: 'Syne', sans-serif;
+  font-weight: 800; font-size: clamp(18px,5vw,24px);
+  box-shadow: 0 0 16px var(--glow);
+}
+.key.eq:active { background: #f0ff80; }
+.key.pur { color: var(--purple); border-color: #2a1a40; background: #110a20; font-size: clamp(9px,2.5vw,11px); }
+.key.s2  { grid-column: span 2; }
+
+/* ── SECTIONS (non-calc pages) ── */
+.section { padding: 14px; }
+.sec-title {
+  font-family: 'Syne', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--dim);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+.lbl { font-size: 10px; color: var(--dim); min-width: 48px; }
+
+.inp {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 11px 12px;
+  color: var(--bright);
+  font-family: 'DM Mono', monospace;
+  font-size: 14px;
+  outline: none;
+  -webkit-appearance: none;
+  transition: border-color .2s;
+  width: 100%;
+}
+.inp:focus { border-color: var(--accent); }
+.inp::placeholder { color: var(--dim); }
+.inp.ctr { text-align: center; }
+
+.frac-preview {
+  text-align: center;
+  font-family: 'Syne Mono', monospace;
+  margin: 8px 0 12px;
+  padding: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+.fp-n { font-size: 20px; color: var(--accent); border-bottom: 2px solid var(--a2); padding: 0 16px 4px; }
+.fp-d { font-size: 20px; color: var(--a2); padding: 4px 16px 0; }
+
+.abtn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: #0a0c18;
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  cursor: pointer;
+  text-transform: uppercase;
+  box-shadow: 0 0 16px var(--glow);
+  margin-top: 6px;
+  -webkit-appearance: none;
+  transition: transform .1s;
+}
+.abtn:active { transform: scale(.98); }
+.abtn.sec {
+  background: transparent;
+  border: 1px solid var(--b2);
+  color: var(--dim);
+  box-shadow: none;
+}
+
+.rbox {
+  margin-top: 12px;
+  padding: 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.rbox.ok { border-color: #1a3020; }
+.rbox.err { border-color: #3a1020; background: #0e0508; }
+.rlbl { font-size: 9px; letter-spacing: 3px; color: var(--dim); margin-bottom: 10px; text-transform: uppercase; }
+.rrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--s2);
+  margin-bottom: 6px;
+  border-left: 3px solid var(--accent);
+}
+.rv  { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800; color: var(--dim); min-width: 20px; }
+.req { color: var(--dim); }
+.rn  { font-family: 'Syne Mono', monospace; font-size: 16px; color: var(--accent); font-weight: bold; flex: 1; }
+.rf  { font-size: 11px; color: var(--a2); }
+.rtxt { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--accent); white-space: pre-wrap; word-break: break-all; line-height: 1.7; }
+.rtxt.err { color: var(--danger); }
+
+/* sub-tabs */
+.stabs { display: flex; gap: 4px; margin-bottom: 12px; }
+.stab {
+  flex: 1;
+  padding: 9px 4px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--dim);
+  font-family: 'Syne Mono', monospace;
+  font-size: 10px;
+  cursor: pointer;
+  text-align: center;
+  -webkit-appearance: none;
+}
+.stab.active { border-color: var(--accent); color: var(--accent); background: #e8ff6e10; }
+
+/* var chips */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.chip {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--b2);
+  background: var(--s2);
+  color: var(--a2);
+  font-family: 'Syne Mono', monospace;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+.chip-bar { position: absolute; bottom: 0; left: 0; height: 3px; background: var(--danger); border-radius: 2px; }
+.addchip {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1px dashed var(--b2);
+  background: transparent;
+  color: var(--dim);
+  font-family: 'Syne Mono', monospace;
+  font-size: 13px;
+  cursor: pointer;
+  -webkit-appearance: none;
+}
+.avar-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 10px;
+  animation: fadeIn .2s ease;
+}
+.cfmbtn {
+  padding: 9px 14px;
+  border-radius: 7px;
+  border: none;
+  background: var(--accent);
+  color: #0a0c18;
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-appearance: none;
+}
+
+/* identity rows */
+.idrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 12px;
+  border-radius: 8px;
+  background: var(--s2);
+  margin-bottom: 6px;
+  border-left: 3px solid var(--purple);
+  cursor: pointer;
+  active: background var(--border);
+}
+.idrow:active { background: var(--border); }
+
+/* hint */
+.hint { font-size: 10px; color: var(--dim); line-height: 1.6; margin-bottom: 10px; }
+
+/* history */
+.hitem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 11px 12px;
+  border-radius: 8px;
+  background: var(--s2);
+  margin-bottom: 6px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+.hitem:active { background: var(--border); }
+.hexpr { font-size: 12px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 55%; }
+.hval  { font-family: 'Syne Mono', monospace; font-size: 14px; color: var(--accent); }
+
+.divider { height: 20px; }
+.hidden { display: none !important; }
+
+@keyframes fadeIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-title">CALC<span>·</span>MATRIX</div>
+  </div>
+
+  <!-- CALC PAGE (flex column, fixed height) -->
+  <div class="calc-page active" id="page-calc">
+    <div class="display">
+      <div class="d-hist" id="d-hist"></div>
+      <div class="d-val" id="d-val">0</div>
+      <div class="d-frac" id="d-frac"></div>
+    </div>
+    <div class="keypad">
+      <button class="key fn" onclick="press('sin(')">sin(</button>
+      <button class="key fn" onclick="press('cos(')">cos(</button>
+      <button class="key fn" onclick="press('tan(')">tan(</button>
+      <button class="key fn" onclick="press('log(')">log(</button>
+      <button class="key fn" onclick="press('ln(')">ln(</button>
+
+      <button class="key fn" onclick="press('asin(')">asin</button>
+      <button class="key fn" onclick="press('acos(')">acos</button>
+      <button class="key fn" onclick="press('atan(')">atan</button>
+      <button class="key fn" onclick="press('sqrt(')">√(</button>
+      <button class="key fn" onclick="press('^2')">x²</button>
+
+      <button class="key fn" id="paren-btn" onclick="pressParen()">( )</button>
+      <button class="key fn" onclick="press('Math.PI')">π</button>
+      <button class="key fn" onclick="press('Math.E')">e</button>
+      <button class="key pur" onclick="press('^')">xⁿ</button>
+      <button class="key op"  onclick="press('%')">%</button>
+
+      <button class="key" onclick="press('7')">7</button>
+      <button class="key" onclick="press('8')">8</button>
+      <button class="key" onclick="press('9')">9</button>
+      <button class="key op" onclick="press('/')">÷</button>
+      <button class="key act" onclick="clearCalc()">CLR</button>
+
+      <button class="key" onclick="press('4')">4</button>
+      <button class="key" onclick="press('5')">5</button>
+      <button class="key" onclick="press('6')">6</button>
+      <button class="key op" onclick="press('*')">×</button>
+      <button class="key act" onclick="delChar()">DEL</button>
+
+      <button class="key" onclick="press('1')">1</button>
+      <button class="key" onclick="press('2')">2</button>
+      <button class="key" onclick="press('3')">3</button>
+      <button class="key op" onclick="press('-')">−</button>
+      <button class="key eq" onclick="compute()">=</button>
+
+      <button class="key s2" onclick="press('0')">0</button>
+      <button class="key" onclick="press('.')">.</button>
+      <button class="key op" onclick="press('+')">+</button>
+      <button class="key fn" onclick="press('(')">(</button>
+    </div>
+  </div>
+
+  <!-- FRACTIONS PAGE -->
+  <div class="page" id="page-frac">
+    <div class="section">
+      <div class="sec-title">⬡ Simplify Fraction</div>
+      <div class="frac-preview">
+        <div class="fp-n" id="fp-n">a</div>
+        <div class="fp-d" id="fp-d">b</div>
+      </div>
+      <div class="row">
+        <span class="lbl">Numer.</span>
+        <input class="inp ctr" id="fn-inp" placeholder="e.g. 12" oninput="updFP()" onkeydown="if(event.key==='Enter')doSimp()"/>
+      </div>
+      <div class="row">
+        <span class="lbl">Denom.</span>
+        <input class="inp ctr" id="fd-inp" placeholder="e.g. 8" oninput="updFP()" onkeydown="if(event.key==='Enter')doSimp()"/>
+      </div>
+      <button class="abtn" onclick="doSimp()">SIMPLIFY</button>
+      <div id="simp-res"></div>
+
+      <div class="divider"></div>
+      <div class="sec-title">⬡ Fraction Algebra + Unknowns</div>
+      <div class="hint">Use +, −, *, /. Variables supported inside fractions.</div>
+      <div class="row">
+        <input class="inp" id="fa-inp" placeholder="x/2 + (3*x+1)/4" onkeydown="if(event.key==='Enter')doFracAlg()"/>
+      </div>
+      <button class="abtn" onclick="doFracAlg()">COMPUTE</button>
+      <div id="fa-res"></div>
+    </div>
+  </div>
+
+  <!-- ALGEBRA PAGE -->
+  <div class="page" id="page-alg">
+    <div class="section">
+      <div class="sec-title">⬡ Expand & Factor</div>
+      <div class="stabs">
+        <button class="stab active" id="alg-exp-btn" onclick="setAlgMode('expand')">EXPAND</button>
+        <button class="stab" id="alg-fac-btn" onclick="setAlgMode('factor')">FACTOR</button>
+      </div>
+      <div class="hint" id="alg-hint">Enter expression to expand. e.g. (x+2)^3</div>
+      <div class="row">
+        <input class="inp" id="alg-inp" placeholder="(x+3)^2" onkeydown="if(event.key==='Enter')doAlg()"/>
+      </div>
+      <button class="abtn" id="alg-btn" onclick="doAlg()">EXPAND</button>
+      <div id="alg-res"></div>
+
+      <div class="divider"></div>
+      <div class="sec-title">⬡ Common Identities</div>
+      <div class="idrow" onclick="fillId('(a+b)^2')">
+        <span style="color:var(--purple);font-family:'Syne Mono',monospace">(a+b)²</span>
+        <span style="color:var(--dim)">=</span>
+        <span style="font-size:12px;color:var(--text)">a² + 2ab + b²</span>
+      </div>
+      <div class="idrow" onclick="fillId('(a-b)^2')">
+        <span style="color:var(--purple);font-family:'Syne Mono',monospace">(a−b)²</span>
+        <span style="color:var(--dim)">=</span>
+        <span style="font-size:12px;color:var(--text)">a² − 2ab + b²</span>
+      </div>
+      <div class="idrow" onclick="fillId('(a+b)*(a-b)')">
+        <span style="color:var(--purple);font-family:'Syne Mono',monospace">(a+b)(a−b)</span>
+        <span style="color:var(--dim)">=</span>
+        <span style="font-size:12px;color:var(--text)">a² − b²</span>
+      </div>
+      <div class="idrow" onclick="fillId('(a+b)^3')">
+        <span style="color:var(--purple);font-family:'Syne Mono',monospace">(a+b)³</span>
+        <span style="color:var(--dim)">=</span>
+        <span style="font-size:12px;color:var(--text)">a³ + 3a²b + 3ab² + b³</span>
+      </div>
+      <div class="idrow" onclick="fillId('(a-b)^3')">
+        <span style="color:var(--purple);font-family:'Syne Mono',monospace">(a−b)³</span>
+        <span style="color:var(--dim)">=</span>
+        <span style="font-size:12px;color:var(--text)">a³ − 3a²b + 3ab² − b³</span>
+      </div>
+      <div class="hint" style="margin-top:8px">Tap identity to auto-fill & expand</div>
+    </div>
+  </div>
+
+  <!-- SOLVER PAGE -->
+  <div class="page" id="page-solv">
+    <div class="section">
+      <div class="sec-title">⬡ Variables</div>
+      <div class="chips" id="var-chips"></div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <button class="addchip" onclick="toggleAddVar()">+ var</button>
+      </div>
+      <div class="avar-row hidden" id="avar-row">
+        <span class="lbl">New:</span>
+        <input class="inp ctr" id="nvar-inp" placeholder="e.g. z" style="font-size:16px" onkeydown="if(event.key==='Enter')addVar();if(event.key==='Escape')toggleAddVar()"/>
+        <button class="cfmbtn" onclick="addVar()">Add ✓</button>
+      </div>
+      <div class="hint">Hold a variable ~1s to remove it</div>
+
+      <div class="sec-title">⬡ Equations</div>
+      <div class="hint">Use = to separate sides. Fractions OK: x/2 + y/3 = 5</div>
+      <div id="eqs-wrap"></div>
+      <button class="abtn sec" style="margin-bottom:10px" onclick="addEq()">+ Add Equation</button>
+      <button class="abtn" onclick="doSolve()">⬡ SOLVE SYSTEM</button>
+      <div id="solv-res"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY PAGE -->
+  <div class="page" id="page-hist">
+    <div class="section">
+      <div class="sec-title">⬡ Calculation Log</div>
+      <div id="hist-list">
+        <div style="text-align:center;color:var(--dim);padding:40px 0;font-size:12px;letter-spacing:2px">NO CALCULATIONS YET</div>
+      </div>
+      <button class="abtn sec hidden" id="clr-hist" style="margin-top:10px" onclick="clrHist()">Clear History</button>
+    </div>
+  </div>
+
+  <!-- TAB BAR -->
+  <div class="tabbar">
+    <button class="tbbtn active" id="tb-calc" onclick="goTab('calc')"><div class="ico">🔢</div>CALC</button>
+    <button class="tbbtn" id="tb-frac" onclick="goTab('frac')"><div class="ico">➗</div>FRAC</button>
+    <button class="tbbtn" id="tb-alg"  onclick="goTab('alg')"><div class="ico">📐</div>ALGEBRA</button>
+    <button class="tbbtn" id="tb-solv" onclick="goTab('solv')"><div class="ico">⬡</div>SOLVER</button>
+    <button class="tbbtn" id="tb-hist" onclick="goTab('hist')"><div class="ico">📋</div>LOG</button>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  MATH ENGINE
+// ═══════════════════════════════════════════════════════
+function gcd(a,b){a=Math.abs(Math.round(a));b=Math.abs(Math.round(b));while(b){[a,b]=[b,a%b];}return a||1;}
+function frac(n,d=1){if(d===0)return{n:NaN,d:1};if(d<0){n=-n;d=-d;}const g=gcd(Math.abs(n),d);return{n:n/g,d:d/g};}
+function fracStr(f){if(isNaN(f.n))return"undefined";if(f.d===1)return String(f.n);return`${f.n}/${f.d}`;}
+function toFrac(x,mx=1000){
+  if(Number.isInteger(x))return frac(x);
+  const s=x<0?-1:1;x=Math.abs(x);
+  let bN=1,bD=1,bE=Infinity;
+  for(let d=1;d<=mx;d++){const n=Math.round(x*d);const e=Math.abs(x-n/d);if(e<bE){bE=e;bN=n;bD=d;}if(e<1e-9)break;}
+  return frac(s*bN,bD);
+}
+function normMono(vars){return vars.filter(([,e])=>e!==0).sort((a,b)=>a[0].localeCompare(b[0])).map(([v,e])=>e===1?v:`${v}^${e}`).join("*")||"";}
+function polyZero(){return new Map();}
+function polyConst(c){const p=new Map();if(c!==0)p.set("",c);return p;}
+function polyVar(v){const p=new Map();p.set(v,1);return p;}
+function polyAdd(a,b){const r=new Map(a);for(const[k,v]of b)r.set(k,(r.get(k)||0)+v);for(const[k,v]of r)if(Math.abs(v)<1e-12)r.delete(k);return r;}
+function polySub(a,b){const neg=new Map();for(const[k,v]of b)neg.set(k,-v);return polyAdd(a,neg);}
+function monoMul(ma,mb){
+  const pm=m=>{if(!m)return{};const vv={};m.split("*").forEach(t=>{const[v,e]=t.includes("^")?t.split("^"):[t,"1"];vv[v]=(vv[v]||0)+parseInt(e);});return vv;};
+  const va=pm(ma),vb=pm(mb),mg={...va};
+  for(const[v,e]of Object.entries(vb))mg[v]=(mg[v]||0)+e;
+  return normMono(Object.entries(mg));
+}
+function polyMul(a,b){const r=new Map();for(const[ka,va]of a)for(const[kb,vb]of b){const k=monoMul(ka,kb);r.set(k,(r.get(k)||0)+va*vb);}for(const[k,v]of r)if(Math.abs(v)<1e-12)r.delete(k);return r;}
+function polyPow(p,n){let r=polyConst(1);for(let i=0;i<n;i++)r=polyMul(r,p);return r;}
+function polyStr(p){
+  if(p.size===0)return"0";
+  const terms=[...p.entries()].sort((a,b)=>{
+    const da=a[0]?a[0].split("*").reduce((s,t)=>s+parseInt(t.includes("^")?t.split("^")[1]:1),0):-1;
+    const db=b[0]?b[0].split("*").reduce((s,t)=>s+parseInt(t.includes("^")?t.split("^")[1]:1),0):-1;
+    return db-da;
+  });
+  return terms.map(([k,v],i)=>{
+    const sg=v<0?(i===0?"-":" - "):(i===0?"":" + ");
+    const ac=Math.abs(v);
+    const cs=ac===1&&k?"":(Number.isInteger(ac)?String(ac):ac.toFixed(4).replace(/\.?0+$/,""));
+    return sg+cs+(k?k:"");
+  }).join("")||"0";
+}
+function parsePoly(expr){
+  expr=expr.trim().replace(/\s+/g,"");let pos=0;
+  function pE(){return pAS();}
+  function pAS(){let l=pMD();while(pos<expr.length&&(expr[pos]==="+"||expr[pos]==="-")){const op=expr[pos++];const r=pMD();l=op==="+"?polyAdd(l,r):polySub(l,r);}return l;}
+  function pMD(){let l=pPow();while(pos<expr.length&&(expr[pos]==="*"||expr[pos]==="/")){const op=expr[pos++];const r=pPow();if(op==="*")l=polyMul(l,r);else{if(r.size===1&&r.has("")){const d=r.get("");const rm=new Map();for(const[k,v]of l)rm.set(k,v/d);l=rm;}else l=polyConst(NaN);}}return l;}
+  function pPow(){let b=pU();if(pos<expr.length&&expr[pos]==="^"){pos++;const ep=pU();if(ep.size===1&&ep.has("")){const e=ep.get("");if(Number.isInteger(e)&&e>=0)b=polyPow(b,e);else b=polyConst(NaN);}else b=polyConst(NaN);}return b;}
+  function pU(){if(pos<expr.length&&expr[pos]==="-"){pos++;return polySub(polyZero(),pPrim());}if(pos<expr.length&&expr[pos]==="+"){pos++;return pPrim();}return pPrim();}
+  function pPrim(){
+    if(pos<expr.length&&expr[pos]==="("){pos++;const inner=pE();if(pos<expr.length&&expr[pos]===")")pos++;return inner;}
+    if(/[0-9.]/.test(expr[pos]||"")){let s="";while(pos<expr.length&&/[0-9.]/.test(expr[pos]))s+=expr[pos++];return polyConst(parseFloat(s));}
+    if(/[a-zA-Z]/.test(expr[pos]||"")){let s="";while(pos<expr.length&&/[a-zA-Z]/.test(expr[pos]))s+=expr[pos++];if(s==="pi")return polyConst(Math.PI);if(s==="e")return polyConst(Math.E);return polyVar(s);}
+    return polyConst(0);
+  }
+  try{return pE();}catch{return polyConst(NaN);}
+}
+function ratSimp(num,den){
+  const ac=[...num.values(),...den.values()].map(Math.abs);
+  if(!ac.length)return{num,den};
+  const g=ac.reduce(gcd);
+  if(g>1){const n2=new Map();for(const[k,v]of num)n2.set(k,v/g);const d2=new Map();for(const[k,v]of den)d2.set(k,v/g);return{num:n2,den:d2};}
+  return{num,den};
+}
+function factorP(ps){
+  const p=parsePoly(ps);
+  const vars=new Set();for(const k of p.keys())if(k)k.split("*").forEach(t=>vars.add(t.replace(/\^.*/,"")));
+  if(vars.size===0)return`${polyStr(p)} (constant)`;
+  if(vars.size>1){
+    const co=[...p.values()];const g=co.reduce((a,b)=>gcd(Math.abs(Math.round(a)),Math.abs(Math.round(b))));
+    if(g>1){const p2=new Map();for(const[k,v]of p)p2.set(k,v/g);return`${g}(${polyStr(p2)})`;}
+    return polyStr(p)+" (cannot factor further)";
+  }
+  const v=[...vars][0],a=p.get(`${v}^2`)||0,b=p.get(v)||0,c=p.get("")||0;
+  if(a===0&&b!==0){if(c===0)return`${b!==1?b:""}${v}`;return`${b!==1?b:""}(${v} + ${fracStr(toFrac(c/b))})`;}
+  if(a!==0){
+    const disc=b*b-4*a*c,ls=a!==1?String(a):"";
+    if(disc<0)return`${polyStr(p)} (irreducible over ℝ)`;
+    if(disc===0){const r=toFrac(-b/(2*a));return`${ls}(${v} ${r.n>=0?"+":"-"} ${fracStr(frac(Math.abs(r.n),r.d))})²`;}
+    const sq=Math.sqrt(disc);
+    if(Math.abs(sq-Math.round(sq))<1e-9){
+      const fr1=frac(-b+Math.round(sq),2*a),fr2=frac(-b-Math.round(sq),2*a);
+      if(fr1.d===1&&fr2.d===1){
+        const s1=fr1.n>=0?`(${v} - ${fr1.n})`:`(${v} + ${-fr1.n})`;
+        const s2=fr2.n>=0?`(${v} - ${fr2.n})`:`(${v} + ${-fr2.n})`;
+        return`${ls}${s1}${s2}`;
+      }
+      const g1=gcd(Math.abs(Math.round(-b+sq)),Math.abs(2*a))||1,g2=gcd(Math.abs(Math.round(-b-sq)),Math.abs(2*a))||1;
+      const p1=2*a/g1,q1=-(-b+sq)/g1,p2=2*a/g2,q2=-(-b-sq)/g2;
+      const fm=n=>Number.isInteger(n)?String(Math.round(n)):n.toFixed(3).replace(/\.?0+$/,"");
+      return`(${fm(p1)}${v} ${q1>=0?"+":"-"} ${fm(Math.abs(q1))})(${fm(p2)}${v} ${q2>=0?"+":"-"} ${fm(Math.abs(q2))})`;
+    }
+    const r1=(-b+sq)/(2*a),r2=(-b-sq)/(2*a),fm=n=>n.toFixed(4).replace(/\.?0+$/,"");
+    return`${ls}(${v} - ${fm(r1)})(${v} - ${fm(r2)})`;
+  }
+  return polyStr(p);
+}
+function expandE(expr){try{const p=parsePoly(expr);if([...p.values()].some(isNaN))return"Cannot expand";return polyStr(p);}catch{return"Cannot expand";}}
+function fracAlg(input){
+  input=input.trim();
+  if(input.includes("=")){const[l,r]=input.split("=").map(s=>s.trim());return`Left:  ${expandE(l)}\nRight: ${expandE(r)}`;}
+  const pF=s=>{
+    const pts=[];let cur="",sg=1,dp=0;
+    for(let i=0;i<s.length;i++){const c=s[i];if(c==="(")dp++;else if(c===")")dp--;else if(dp===0&&(c==="+"||c==="-")&&i>0){pts.push({raw:cur.trim(),sg});sg=c==="+"?1:-1;cur="";continue;}cur+=c;}
+    if(cur.trim())pts.push({raw:cur.trim(),sg});
+    return pts.map(p=>{const si=p.raw.indexOf("/");if(si===-1)return{num:p.raw,den:"1",sg:p.sg};return{num:p.raw.slice(0,si).trim(),den:p.raw.slice(si+1).trim(),sg:p.sg};});
+  };
+  const parts=pF(input);if(!parts.length)return"";
+  let rN=parsePoly(parts[0].num),rD=parsePoly(parts[0].den);
+  for(let i=1;i<parts.length;i++){
+    const{num,den,sg}=parts[i];const np=parsePoly(num),dp=parsePoly(den);
+    rN=sg===1?polyAdd(polyMul(rN,dp),polyMul(np,rD)):polySub(polyMul(rN,dp),polyMul(np,rD));
+    rD=polyMul(rD,dp);
+  }
+  const{num:sn,den:sd}=ratSimp(rN,rD);
+  const ns=polyStr(sn),ds=polyStr(sd);
+  return ds==="1"?ns:`(${ns}) / (${ds})`;
+}
+function gaussSolve(M,C){
+  const n=M.length,aug=M.map((r,i)=>[...r,C[i]]);
+  for(let c=0;c<n;c++){
+    let mr=c;for(let r=c+1;r<n;r++)if(Math.abs(aug[r][c])>Math.abs(aug[mr][c]))mr=r;
+    [aug[c],aug[mr]]=[aug[mr],aug[c]];
+    if(Math.abs(aug[c][c])<1e-10)return null;
+    const pv=aug[c][c];for(let j=c;j<=n;j++)aug[c][j]/=pv;
+    for(let r=0;r<n;r++){if(r===c)continue;const f=aug[r][c];for(let j=c;j<=n;j++)aug[r][j]-=f*aug[c][j];}
+  }
+  return aug.map(r=>r[n]);
+}
+function evalS(expr,vars={}){
+  try{
+    let e=expr;
+    for(const[k,v]of Object.entries(vars))e=e.replace(new RegExp(`(?<![a-zA-Z])${k}(?![a-zA-Z])`,"g"),`(${v})`);
+    e=e.replace(/\^/g,"**").replace(/sin\(/g,"Math.sin(").replace(/cos\(/g,"Math.cos(").replace(/tan\(/g,"Math.tan(")
+       .replace(/asin\(/g,"Math.asin(").replace(/acos\(/g,"Math.acos(").replace(/atan\(/g,"Math.atan(")
+       .replace(/sqrt\(/g,"Math.sqrt(").replace(/log\(/g,"Math.log10(").replace(/ln\(/g,"Math.log(").replace(/abs\(/g,"Math.abs(");
+    return Function('"use strict";return('+e+")")();
+  }catch{return NaN;}
+}
+function solveSys(eqs,vs){
+  const n=vs.length,M=[],C=[];
+  for(const eq of eqs){
+    const pts=eq.split("=");if(pts.length!==2)continue;
+    const cb=`(${pts[0].trim()})-(${pts[1].trim()})`;
+    const row=[];let lin=true;
+    for(const v of vs){
+      const wv=Object.fromEntries(vs.map(vv=>[vv,vv===v?1:0]));
+      const wo=Object.fromEntries(vs.map(vv=>[vv,0]));
+      const a=evalS(cb,wv),b=evalS(cb,wo);
+      if(isNaN(a)||isNaN(b)){lin=false;break;}row.push(a-b);
+    }
+    if(!lin)break;
+    C.push(-evalS(cb,Object.fromEntries(vs.map(v=>[v,0]))));M.push(row);
+  }
+  if(M.length===n){const sol=gaussSolve(M,C);if(sol)return vs.map((v,i)=>({v,val:sol[i],f:toFrac(sol[i])}));}
+  if(n===2){
+    const[v1,v2]=vs;
+    const f0=eqs[0].includes("=")?`(${eqs[0].split("=")[0]})-(${eqs[0].split("=")[1]})`:eqs[0];
+    const f1=eqs[1].includes("=")?`(${eqs[1].split("=")[0]})-(${eqs[1].split("=")[1]})`:eqs[1];
+    let x=[0.5,0.5];
+    const F=v=>[evalS(f0,{[v1]:v[0],[v2]:v[1]}),evalS(f1,{[v1]:v[0],[v2]:v[1]})];
+    const h=1e-5;
+    for(let i=0;i<500;i++){
+      const fv=F(x);if(Math.abs(fv[0])<1e-9&&Math.abs(fv[1])<1e-9)break;
+      const J=[[(evalS(f0,{[v1]:x[0]+h,[v2]:x[1]})-fv[0])/h,(evalS(f0,{[v1]:x[0],[v2]:x[1]+h})-fv[0])/h],
+               [(evalS(f1,{[v1]:x[0]+h,[v2]:x[1]})-fv[1])/h,(evalS(f1,{[v1]:x[0],[v2]:x[1]+h})-fv[1])/h]];
+      const det=J[0][0]*J[1][1]-J[0][1]*J[1][0];if(Math.abs(det)<1e-15)break;
+      x=[x[0]-(J[1][1]*fv[0]-J[0][1]*fv[1])/det,x[1]-(-J[1][0]*fv[0]+J[0][0]*fv[1])/det];
+    }
+    const fv=F(x);if(Math.abs(fv[0])<1e-6&&Math.abs(fv[1])<1e-6)return vs.map((v,i)=>({v,val:x[i],f:toFrac(x[i])}));
+  }
+  if(n===1){
+    const v=vs[0];
+    const es=eqs[0].includes("=")?`(${eqs[0].split("=")[0]})-(${eqs[0].split("=")[1]})`:eqs[0];
+    const F=val=>evalS(es,{[v]:val});
+    const roots=[];
+    for(let s=-200;s<200;s+=0.5){const fa=F(s),fb=F(s+0.5);if(isNaN(fa)||isNaN(fb)||fa*fb>0)continue;let a=s,b=s+0.5;for(let i=0;i<100;i++){const m=(a+b)/2,fm=F(m);if(Math.abs(fm)<1e-10||(b-a)<1e-12){roots.push(parseFloat(m.toFixed(8)));break;}F(a)*fm<0?(b=m):(a=m);}}
+    const u=[...new Set(roots.map(r=>r.toFixed(6)))].map(Number);
+    if(u.length>0)return u.map(r=>({v,val:r,f:toFrac(r)}));
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════
+//  UI STATE
+// ═══════════════════════════════════════════════════════
+let display="0", dHist="", dFrac="", isRes=false, history=[];
+let vars=["x","y"], eqs=["",""];
+let holdVar=null, holdProg=0, holdIv=null, algMode="expand";
+
+// ── TABS ──
+function goTab(name){
+  ["calc","frac","alg","solv","hist"].forEach(t=>{
+    const pg=document.getElementById("page-"+t);
+    if(t==="calc"){pg.classList.toggle("active",t===name);}
+    else{pg.classList.toggle("active",t===name);}
+  });
+  document.querySelectorAll(".tbbtn").forEach(b=>b.classList.remove("active"));
+  document.getElementById("tb-"+name).classList.add("active");
+  if(name==="hist")renderHist();
+}
+
+// Override for calc page special handling
+document.querySelectorAll(".page,.calc-page").forEach(el=>{});
+
+// ── CALCULATOR ──
+function updDisp(){
+  const el=document.getElementById("d-val");
+  el.textContent=display;
+  el.className="d-val"+(display.length>13?" sm":"")+(isRes&&(display.includes("error")||display.includes("zero"))?" err":"");
+  document.getElementById("d-hist").textContent=dHist;
+  document.getElementById("d-frac").textContent=dFrac;
+  const op=(display.match(/\(/g)||[]).length,cl=(display.match(/\)/g)||[]).length;
+  document.getElementById("paren-btn").textContent=op>cl?")":" ( ";
+}
+function press(v){
+  if(isRes){
+    if(/[0-9.(]/.test(v)||v==="Math.PI"||v==="Math.E"){display=v==="Math.PI"?"π":v==="Math.E"?"e":v;}
+    else display+=v;
+    dFrac="";isRes=false;
+  } else {
+    if(display==="0"&&/^[0-9]$/.test(v))display=v;
+    else if(display==="0"&&v===".")display="0.";
+    else display+=v;
+  }
+  updDisp();
+}
+function pressParen(){const op=(display.match(/\(/g)||[]).length,cl=(display.match(/\)/g)||[]).length;press(op>cl?")":"(");}
+function clearCalc(){display="0";dHist="";dFrac="";isRes=false;updDisp();}
+function delChar(){if(isRes){display="0";dFrac="";isRes=false;}else display=display.length<=1?"0":display.slice(0,-1);updDisp();}
+function compute(){
+  let expr=display.replace(/π/g,"Math.PI").replace(/(?<![a-z])e(?![a-z])/g,"Math.E");
+  expr=expr.replace(/log\(/g,"Math.log10(").replace(/ln\(/g,"Math.log(").replace(/sin\(/g,"Math.sin(").replace(/cos\(/g,"Math.cos(").replace(/tan\(/g,"Math.tan(").replace(/asin\(/g,"Math.asin(").replace(/acos\(/g,"Math.acos(").replace(/atan\(/g,"Math.atan(").replace(/sqrt\(/g,"Math.sqrt(").replace(/\^/g,"**");
+  try{
+    const result=Function('"use strict";return('+expr+")")();
+    if(!isFinite(result)){display="Division by zero";dFrac="";isRes=true;updDisp();return;}
+    const fmt=parseFloat(result.toFixed(10)).toString();
+    const f=toFrac(result);
+    dFrac=f.d!==1?`= ${fracStr(f)}`:"";
+    dHist=display+" =";
+    history=[{expr:display,val:fmt},...history.slice(0,19)];
+    display=fmt;isRes=true;
+  }catch{dHist=display;display="Syntax error";dFrac="";isRes=true;}
+  updDisp();
+}
+
+// ── FRACTIONS ──
+function updFP(){
+  document.getElementById("fp-n").textContent=document.getElementById("fn-inp").value||"a";
+  document.getElementById("fp-d").textContent=document.getElementById("fd-inp").value||"b";
+}
+function doSimp(){
+  const n=parseFloat(document.getElementById("fn-inp").value);
+  const d=parseFloat(document.getElementById("fd-inp").value);
+  const el=document.getElementById("simp-res");
+  if(isNaN(n)){el.innerHTML=errBox("Enter a valid numerator");return;}
+  if(isNaN(d)){el.innerHTML=errBox("Enter a valid denominator");return;}
+  if(d===0){el.innerHTML=errBox("Denominator cannot be zero");return;}
+  const s=frac(n,d),dec=n/d,tr=Math.trunc(dec),rem=frac(Math.abs(s.n%s.d),s.d);
+  const mix=s.d!==1?(tr!==0?`${tr} ${fracStr(rem)}`:fracStr(rem)):"";
+  el.innerHTML=`<div class="rbox ok" style="margin-top:12px">
+    <div class="rlbl">Result</div>
+    <div class="rrow"><span class="rv">Simplified</span><span class="req">=</span><span class="rn">${fracStr(s)}</span></div>
+    <div class="rrow" style="border-left-color:var(--a2)"><span class="rv">Decimal</span><span class="req">=</span><span class="rn" style="color:var(--a2)">${dec.toFixed(8).replace(/\.?0+$/,"")}</span></div>
+    ${s.d!==1?`<div class="rrow" style="border-left-color:var(--a3)"><span class="rv">Mixed</span><span class="req">=</span><span class="rn" style="color:var(--a3)">${mix}</span></div>`:""}
+  </div>`;
+}
+function doFracAlg(){
+  const inp=document.getElementById("fa-inp").value.trim();
+  const el=document.getElementById("fa-res");
+  if(!inp){el.innerHTML="";return;}
+  try{
+    const res=fracAlg(inp);
+    const isE=res.toLowerCase().includes("error")||res.toLowerCase().includes("cannot");
+    el.innerHTML=`<div class="rbox ${isE?"err":"ok"}" style="margin-top:12px"><div class="rlbl">Result</div><div class="rtxt ${isE?"err":""}">${res}</div></div>`;
+  }catch(e){el.innerHTML=errBox(e.message);}
+}
+
+// ── ALGEBRA ──
+function setAlgMode(m){
+  algMode=m;
+  document.getElementById("alg-exp-btn").classList.toggle("active",m==="expand");
+  document.getElementById("alg-fac-btn").classList.toggle("active",m==="factor");
+  document.getElementById("alg-hint").textContent=m==="expand"?"Enter expression to expand. e.g. (x+2)^3 or (a+b)*(a-b)":"Enter polynomial to factor. e.g. x^2-5*x+6 or 2*x^2+3*x+1";
+  document.getElementById("alg-btn").textContent=m==="expand"?"EXPAND":"FACTOR";
+  document.getElementById("alg-inp").placeholder=m==="expand"?"(x+3)^2":"x^2 - 5*x + 6";
+}
+function doAlg(){
+  const inp=document.getElementById("alg-inp").value.trim();
+  const el=document.getElementById("alg-res");
+  if(!inp){el.innerHTML="";return;}
+  const res=algMode==="expand"?expandE(inp):factorP(inp);
+  const isE=res.toLowerCase().includes("error")||res.toLowerCase().includes("cannot");
+  el.innerHTML=`<div class="rbox ${isE?"err":"ok"}" style="margin-top:12px"><div class="rlbl">${algMode==="expand"?"Expanded":"Factored"}</div><div class="rtxt ${isE?"err":""}">${res}</div></div>`;
+}
+function fillId(expr){document.getElementById("alg-inp").value=expr;setAlgMode("expand");goTab("alg");doAlg();}
+
+// ── SOLVER ──
+function renderChips(){
+  document.getElementById("var-chips").innerHTML=vars.map(v=>`<div class="chip" id="chip-${v}"
+    onmousedown="startHold('${v}')" onmouseup="cancelHold()" onmouseleave="cancelHold()"
+    ontouchstart="startHold('${v}')" ontouchend="cancelHold()">${v}<div class="chip-bar" id="cb-${v}" style="width:0%"></div></div>`).join("");
+}
+function renderEqs(){
+  document.getElementById("eqs-wrap").innerHTML=eqs.map((eq,i)=>`<div class="row">
+    <span class="lbl" style="font-size:10px">eq ${i+1}</span>
+    <input class="inp" id="eq-${i}" value="${eq.replace(/"/g,"&quot;")}"
+      placeholder="${i===0?"x/2 + y = 4":i===1?"2*x - y/3 = 1":"z + x*y = 0"}"
+      style="font-size:14px"
+      oninput="eqs[${i}]=this.value" onkeydown="if(event.key==='Enter')doSolve()"/>
+    ${eqs.length>1?`<button class="addchip" style="padding:7px 10px" onclick="rmEq(${i})">×</button>`:""}
+  </div>`).join("");
+}
+function toggleAddVar(){
+  const r=document.getElementById("avar-row");
+  r.classList.toggle("hidden");
+  if(!r.classList.contains("hidden"))document.getElementById("nvar-inp").focus();
+}
+function addVar(){
+  const n=document.getElementById("nvar-inp").value.trim();
+  if(!n||vars.includes(n))return;
+  vars.push(n);document.getElementById("nvar-inp").value="";
+  document.getElementById("avar-row").classList.add("hidden");
+  renderChips();
+}
+function rmEq(i){eqs.splice(i,1);renderEqs();}
+function addEq(){eqs.push("");renderEqs();}
+function startHold(v){
+  holdVar=v;holdProg=0;
+  holdIv=setInterval(()=>{
+    holdProg+=4;
+    const bar=document.getElementById("cb-"+v);
+    const chip=document.getElementById("chip-"+v);
+    if(bar)bar.style.width=holdProg+"%";
+    if(chip){chip.style.borderColor="var(--danger)";chip.style.color="var(--danger)";}
+    if(holdProg>=100){clearInterval(holdIv);vars=vars.filter(x=>x!==v);renderChips();}
+  },40);
+}
+function cancelHold(){
+  clearInterval(holdIv);
+  if(holdVar){
+    const bar=document.getElementById("cb-"+holdVar);
+    const chip=document.getElementById("chip-"+holdVar);
+    if(bar)bar.style.width="0%";
+    if(chip){chip.style.borderColor="";chip.style.color="";}
+  }
+  holdVar=null;holdProg=0;
+}
+function doSolve(){
+  const activeEqs=eqs.filter(e=>e.trim());
+  const el=document.getElementById("solv-res");
+  if(!activeEqs.length){el.innerHTML=errBox("Enter at least one equation.");return;}
+  if(!vars.length){el.innerHTML=errBox("Add at least one variable.");return;}
+  const result=solveSys(activeEqs,vars);
+  if(!result){el.innerHTML=errBox("Could not find a solution. Check equations.");return;}
+  const colors=["var(--accent)","var(--a2)","var(--a3)","var(--purple)"];
+  el.innerHTML=`<div class="rbox ok" style="margin-top:12px">
+    <div class="rlbl">Solution</div>
+    ${result.map((r,i)=>`<div class="rrow" style="border-left-color:${colors[i%colors.length]}">
+      <span class="rv">${r.v}</span><span class="req">=</span>
+      <span class="rn" style="color:${colors[i%colors.length]}">${parseFloat(r.val.toFixed(8))}</span>
+      ${r.f&&r.f.d!==1?`<span class="rf">= ${fracStr(r.f)}</span>`:""}
+    </div>`).join("")}
+  </div>`;
+}
+
+// ── HISTORY ──
+function renderHist(){
+  const el=document.getElementById("hist-list");
+  const btn=document.getElementById("clr-hist");
+  if(!history.length){el.innerHTML=`<div style="text-align:center;color:var(--dim);padding:40px 0;font-size:12px;letter-spacing:2px">NO CALCULATIONS YET</div>`;btn.classList.add("hidden");return;}
+  el.innerHTML=history.map((h,i)=>`<div class="hitem" onclick="useHist(${i})"><span class="hexpr">${h.expr}</span><span class="hval">${h.val}</span></div>`).join("");
+  btn.classList.remove("hidden");
+}
+function useHist(i){display=history[i].val;isRes=true;dFrac="";dHist="";updDisp();goTab("calc");}
+function clrHist(){history=[];renderHist();}
+
+// ── HELPERS ──
+function errBox(msg){return`<div class="rbox err" style="margin-top:12px"><div class="rtxt err">⚠ ${msg}</div></div>`;}
+
+// ── INIT ──
+renderChips();
+renderEqs();
+updDisp();
+
+// Fix keypad height dynamically
+function resizeKeypad(){
+  const shell=document.querySelector(".shell");
+  const hdr=document.querySelector(".hdr");
+  const disp=document.querySelector(".display");
+  const tb=document.querySelector(".tabbar");
+  const total=shell.clientHeight;
+  const used=hdr.offsetHeight+disp.offsetHeight+tb.offsetHeight;
+  const kp=document.querySelector(".keypad");
+  if(kp)kp.style.height=(total-used)+"px";
+}
+window.addEventListener("resize",resizeKeypad);
+setTimeout(resizeKeypad,100);
+</script>
+</body>
+</html>
